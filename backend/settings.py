@@ -15,9 +15,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'backendApp.Student',
-    'backendApp.Admin',
+    'backendApp.Faculty',
+    'backendApp.Building',
+    'backendApp.RoomWithItems',
+    'backendApp.Item',
     'backendApp.RoomToRent',
+    'backendApp.Booking',
+    'backendApp.ItemBooking',
+    'backendApp.Admin',
+    'backendApp.Student',
 ]
 
 MIDDLEWARE = [
