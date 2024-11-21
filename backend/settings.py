@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'backendApp.Student',
     'backendApp.Admin',
+    'backendApp.RoomToRent',
 ]
 
 MIDDLEWARE = [

@@ -22,5 +22,5 @@ from backendApp.Student.views import student_login
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('student/login/', student_login, name='student-login'),
+    path('student/login', student_login, name='student-login'),
 ]
