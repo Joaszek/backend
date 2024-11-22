@@ -2,6 +2,7 @@ from django.db import models
 
 
 class Building(models.Model):
+    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=10)
     faculty = models.ForeignKey(
         'Faculty.Faculty', on_delete=models.CASCADE, related_name='buildings'

@@ -3,6 +3,7 @@ from django.contrib.auth.hashers import make_password, check_password
 
 
 class Admin(models.Model):
+    id = models.AutoField(primary_key=True)
     username = models.CharField(max_length=150, unique=True)
     password = models.CharField(max_length=128)  # Store hashed passwords
     email = models.EmailField(unique=True)

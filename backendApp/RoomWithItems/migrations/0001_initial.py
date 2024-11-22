@@ -18,6 +18,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('room_number', models.IntegerField()),
+                ('is_to_rent', models.BooleanField(default=False, editable=False, blank=True)),
                 ('building', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rooms_with_items', to='Building.building')),
             ],
         ),

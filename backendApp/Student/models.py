@@ -3,6 +3,7 @@ from django.db import models
 
 
 class Student(AbstractUser):
+    id = models.AutoField(primary_key=True)
     additional_field = models.CharField(max_length=255, blank=True, null=True)
     groups = models.ManyToManyField(
         'auth.Group',
