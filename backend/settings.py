@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'backendApp.ItemBooking',
     'backendApp.Admin',
     'backendApp.Student',
+    'backendApp'
 ]
 
 MIDDLEWARE = [

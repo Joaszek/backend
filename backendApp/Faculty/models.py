@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Faculty(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     admin = models.ForeignKey(
         'Admin.Admin', on_delete=models.CASCADE, related_name='faculties'
     )

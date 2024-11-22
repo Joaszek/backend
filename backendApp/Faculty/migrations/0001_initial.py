@@ -9,7 +9,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('Admin', 'pupulate_db'),
         ('Building', '0001_initial'),
     ]
 
