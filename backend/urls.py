@@ -22,7 +22,7 @@ from backendApp.Student.views import student_login
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('student/login', student_login, name='student-login'),
-    path('admin1/login', login, name='login'),
+    path('admin_paths/login', login, name='login'),
     path('student/', include('backendApp.Student.urls')),  # Include Student app routes
-    path('admin/', include('backendApp.Admin.urls')),      # Include Admin app routes
+    path('admin_paths/', include('backendApp.Admin.urls')),      # Include Admin app routes
 ]

@@ -9,7 +9,6 @@ class ItemBooking(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='item_bookings'
     )
-    item_owner = models.CharField(max_length=255)
     start_date = models.DateField()
     end_date = models.DateField()
 
