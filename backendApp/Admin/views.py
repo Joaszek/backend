@@ -1,8 +1,12 @@
+from django.contrib.auth import authenticate
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
+
+from backendApp.Admin.models import Admin
+
 
 @ensure_csrf_cookie
 def get_all_admins(request):
@@ -57,7 +61,7 @@ def get_all_rooms(request):
 @csrf_exempt
 def login(request):
     """
-    Admin login.
+    Handle admin login.
     """
     if request.method == "POST":
         try:
@@ -67,12 +71,23 @@ def login(request):
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-        # Replace with actual authentication logic
-        if username == "admin" and password == "password":
+        # Query the Admin model
+        try:
+            admin = Admin.objects.get(username=username)
+        except Admin.DoesNotExist:
+            return JsonResponse({"error": "Invalid credentials"}, status=401)
+
+        # Compare passwords
+        if admin.check_password(password):
             csrf_token = get_token(request)
-            return JsonResponse({"message": "Login successful", "csrf_token": csrf_token}, status=200)
+            return JsonResponse({
+                "message": "Login successful",
+                "csrf_token": csrf_token
+            }, status=200)
+
         return JsonResponse({"error": "Invalid credentials"}, status=401)
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
 @ensure_csrf_cookie
 def give_back_item_item_id(request):
