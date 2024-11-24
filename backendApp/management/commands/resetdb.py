@@ -37,7 +37,7 @@ class Command(BaseCommand):
 
         # Add a Student
         student, _ = Student.objects.get_or_create(
-            username="student1",
+            username="123456",
             defaults={
                 "password": make_password("password123"),
                 "email": "student1@example.com",
@@ -47,9 +47,9 @@ class Command(BaseCommand):
 
         # Add an Admin
         admin, _ = Admin.objects.get_or_create(
-            username="admin1",
+            username="123456",
             defaults={
-                "password": make_password("adminpassword123"),
+                "password": make_password("password123"),
                 "email": "admin1@example.com",
                 "additional_field": "Some admin data",
                 "is_superuser": True

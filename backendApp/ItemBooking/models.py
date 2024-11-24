@@ -3,6 +3,7 @@ from django.conf import settings
 
 
 class ItemBooking(models.Model):
+    id = models.BigAutoField(primary_key=True)
     item = models.ForeignKey(
         'Item.Item', on_delete=models.CASCADE, related_name='item_bookings'
     )

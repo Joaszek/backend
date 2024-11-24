@@ -17,9 +17,10 @@ class Migration(migrations.Migration):
             name='Item',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=60)),
+                ('name', models.CharField(max_length=60, unique=True)),
                 ('amount', models.IntegerField()),
                 ('room_with_items', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='RoomWithItems.roomwithitems')),
+                ('item_owner', models.CharField(max_length=255)),
             ],
         ),
     ]

@@ -8,6 +8,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+]
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -35,6 +39,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'backendApp.middleware.CustomCORSHeadersMiddleware',  # Add the custom middleware
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -96,3 +101,5 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'Student.Student'  # Specify the custom user model
+
+CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'

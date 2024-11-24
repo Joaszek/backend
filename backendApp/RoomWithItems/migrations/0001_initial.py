@@ -21,5 +21,9 @@ class Migration(migrations.Migration):
                 ('is_to_rent', models.BooleanField(default=False, editable=False, blank=True)),
                 ('building', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rooms_with_items', to='Building.building')),
             ],
+            options={
+                'unique_together': {('room_number', 'building')},
+            },
         ),
+
     ]

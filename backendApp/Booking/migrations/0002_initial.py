@@ -19,11 +19,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='booking',
             name='room_to_rent',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='bookings', to='RoomToRent.roomtorent'),
+            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='bookings', to='RoomToRent.roomtorent'),
         ),
         migrations.AddField(
             model_name='booking',
             name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='bookings', to=settings.AUTH_USER_MODEL),
+            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='bookings', to=settings.AUTH_USER_MODEL),
         ),
     ]

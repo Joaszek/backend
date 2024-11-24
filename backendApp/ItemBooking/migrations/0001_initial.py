@@ -19,7 +19,6 @@ class Migration(migrations.Migration):
             name='ItemBooking',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('item_owner', models.CharField(max_length=255)),
                 ('start_date', models.DateField()),
                 ('end_date', models.DateField()),
                 ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='item_bookings', to='Item.item')),

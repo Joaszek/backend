@@ -9,5 +9,8 @@ class RoomWithItems(models.Model):
         'Building.Building', on_delete=models.CASCADE, related_name='rooms_with_items'
     )
 
+    class Meta:
+        unique_together = ('room_number', 'building')  # Ograniczenie unikalności
+
     def __str__(self):
         return f"Room {self.room_number} in {self.building.name}"
