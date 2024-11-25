@@ -6,11 +6,19 @@ from django.middleware.csrf import get_token
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-
+from drf_spectacular import openapi
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
 from backendApp.Booking.models import Booking
 from backendApp.Item.models import Item
 from backendApp.ItemBooking.models import ItemBooking
 from backendApp.RoomToRent.models import RoomToRent
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+import json
+
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +104,7 @@ def get_available_items(request):
 
 
 @csrf_exempt
+
 def rent_item(request):
     """
     Allow students to rent an item.

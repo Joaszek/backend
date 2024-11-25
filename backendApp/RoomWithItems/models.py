@@ -6,7 +6,7 @@ class RoomWithItems(models.Model):
     room_number = models.IntegerField()
     is_to_rent = models.BooleanField(default=False, editable=False, blank=True)
     building = models.ForeignKey(
-        'Building.Building', on_delete=models.CASCADE, related_name='rooms_with_items'
+        'Building.Building', on_delete=models.CASCADE, related_name='rooms_with_items', null=False
     )
 
     class Meta:

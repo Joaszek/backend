@@ -1,10 +1,15 @@
-from django.contrib.auth import authenticate
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
+from datetime import datetime
 
+from django.views.decorators.http import require_http_methods
+from drf_spectacular.utils import extend_schema
+
+from backendApp import Attribute
 from backendApp.Admin.models import Admin
 from backendApp.Booking.models import Booking
 from backendApp.Building.models import Building
@@ -14,9 +19,21 @@ from backendApp.ItemBooking.models import ItemBooking
 from backendApp.Student.models import Student
 from backendApp.RoomWithItems.models import RoomWithItems
 from backendApp.RoomToRent.models import RoomToRent
+from backendApp.Type.models import Type
 
 
 @ensure_csrf_cookie
+@extend_schema(
+    summary="Get all admins except the provided username",
+    description="Fetch all admin users from the database except the one with the given username.",
+    parameters=[
+        {"name": "username", "in": "path", "required": True, "description": "Admin username to exclude", "schema": {"type": "string"}}
+    ],
+    responses={
+        200: {"type": "object", "properties": {"admins": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "login": {"type": "string"}, "super_admin": {"type": "boolean"}}}}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_all_admins(request, username):
     """
     Fetch all admin users except the one with the provided username.
@@ -29,6 +46,14 @@ def get_all_admins(request, username):
 
 
 @ensure_csrf_cookie
+@extend_schema(
+    summary="Get all students",
+    description="Fetch all students from the database.",
+    responses={
+        200: {"type": "object", "properties": {"students": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "login": {"type": "string"}}}}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_all_students(request):
     """
     Fetch all students.
@@ -41,6 +66,14 @@ def get_all_students(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Get all faculties",
+    description="Fetch all faculties from the database.",
+    responses={
+        200: {"type": "object", "properties": {"faculties": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "name": {"type": "string"}}}}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_all_faculty(request):
     """
     Fetch all faculties.
@@ -53,6 +86,14 @@ def get_all_faculty(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Get all buildings",
+    description="Fetch all buildings from the database along with their faculty details.",
+    responses={
+        200: {"type": "object", "properties": {"buildings": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "name": {"type": "string"}, "faculty name": {"type": "string"}}}}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_all_buildings(request):
     """
     Fetch all buildings.
@@ -66,6 +107,14 @@ def get_all_buildings(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Get all rooms",
+    description="Fetch all rooms from the database, including rooms for rent and rooms with items.",
+    responses={
+        200: {"type": "object", "properties": {"rooms": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "number": {"type": "integer"}, "building_name": {"type": "string"}}}}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_all_rooms(request):
     """
     Fetch all rooms.
@@ -82,6 +131,22 @@ def get_all_rooms(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Add a new admin",
+    description="Create a new admin user. Requires `login`, `password`, and `super_admin` fields.",
+    request={
+        "type": "object",
+        "properties": {
+            "login": {"type": "string", "example": "admin123"},
+            "password": {"type": "string", "example": "securepassword"},
+            "super_admin": {"type": "boolean", "example": True}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+    },
+)
 def add_admin(request):
     """
     Add a new admin user.
@@ -104,6 +169,22 @@ def add_admin(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Add a new student",
+    description="Add a new student to the system by providing a username and password.",
+    request={
+        "type": "object",
+        "properties": {
+            "username": {"type": "string", "example": "student123"},
+            "password": {"type": "string", "example": "securepassword"}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def add_student(request):
     """
     Add a new student by admin.
@@ -125,6 +206,23 @@ def add_student(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Add a new faculty",
+    description="Add a new faculty by providing the faculty name and the username of an associated admin.",
+    request={
+        "type": "object",
+        "properties": {
+            "faculty_name": {"type": "string", "example": "Engineering"},
+            "admin_username": {"type": "string", "example": "admin123"}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def add_faculty(request):
     """
     Add a new faculty by admin.
@@ -153,6 +251,23 @@ def add_faculty(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Add a new building",
+    description="Add a new building by providing its name and the associated faculty name.",
+    request={
+        "type": "object",
+        "properties": {
+            "building_name": {"type": "string", "example": "Building A"},
+            "faculty_name": {"type": "string", "example": "Engineering"}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def add_building(request):
     """
     Add a new building by admin.
@@ -182,6 +297,24 @@ def add_building(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Add a new room",
+    description="Add a new room by providing its number, whether it's for rent, and the building name.",
+    request={
+        "type": "object",
+        "properties": {
+            "room_number": {"type": "integer", "example": 101},
+            "is_room_for_rent": {"type": "boolean", "example": True},
+            "building_name": {"type": "string", "example": "Building A"}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def add_room(request):
     """
     Add a new room by admin.
@@ -216,6 +349,22 @@ def add_room(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Remove a room",
+    description="Remove a room by providing its ID and whether it's a room for rent.",
+    request={
+        "type": "object",
+        "properties": {
+            "room_id": {"type": "integer", "example": 1},
+            "is_room_for_rent": {"type": "boolean", "example": True}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def remove_room(request):
     """
     Remove a room by ID.
@@ -241,6 +390,18 @@ def remove_room(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Remove a building by ID",
+    description="Delete a building from the database using its unique ID.",
+    parameters=[
+        {"name": "building_id", "in": "path", "required": True, "description": "ID of the building to delete", "schema": {"type": "integer"}}
+    ],
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def remove_building(request, building_id):
     """
     Remove a building by ID.
@@ -255,6 +416,18 @@ def remove_building(request, building_id):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Delete a faculty by ID",
+    description="Remove a faculty from the database using its unique ID.",
+    parameters=[
+        {"name": "faculty_id", "in": "path", "required": True, "description": "ID of the faculty to delete", "schema": {"type": "integer"}}
+    ],
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def delete_faculty(request, faculty_id):
     """
     Delete a faculty by ID.
@@ -272,6 +445,26 @@ def delete_faculty(request, faculty_id):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Add a new item to a room",
+    description="Create a new item and assign it to a specific room by providing details like the room number, building name, item owner, and quantity.",
+    request={
+        "type": "object",
+        "properties": {
+            "building_number": {"type": "string", "example": "Building A"},
+            "room_number": {"type": "integer", "example": 101},
+            "item_owner": {"type": "string", "example": "Admin"},
+            "item_name": {"type": "string", "example": "Laptop"},
+            "item_amount": {"type": "integer", "example": 10}
+        },
+    },
+    responses={
+        201: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def add_item(request):
     """
     Add a new item to a room.
@@ -313,6 +506,18 @@ def add_item(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@extend_schema(
+    summary="Delete an item by ID",
+    description="Remove an item from the database using its unique ID.",
+    parameters=[
+        {"name": "item_id", "in": "path", "required": True, "description": "ID of the item to delete", "schema": {"type": "integer"}}
+    ],
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def delete_item(request, item_id):
     """
     Delete an item by ID.
@@ -330,9 +535,26 @@ def delete_item(request, item_id):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Return a rented room",
+    description="Mark a room as returned by updating the Booking record's `end_time`. Provide the `room_id` and the student username (`reserved_by`).",
+    request={
+        "type": "object",
+        "properties": {
+            "reserved_by": {"type": "string", "example": "student123"},
+            "room_id": {"type": "integer", "example": 1}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def return_room(request):
     """
-    Return a room by room ID and student ID.
+    Mark a room as returned by updating the Booking record.
     """
     if request.method == "POST":
         try:
@@ -354,14 +576,31 @@ def return_room(request):
         except Booking.DoesNotExist:
             return JsonResponse({"error": "Booking not found"}, status=404)
 
-        # Delete the booking
-        booking.delete()
+        booking.end_time = datetime.now()
+        booking.save()
 
-        return JsonResponse({"message": f"Room {room_id} returned by student {reserved_by} successfully"}, status=200)
+        return JsonResponse({"message": f"Room {room_id} marked as returned by student {reserved_by} successfully"}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Return a rented item",
+    description="Mark an item as returned by increasing the item's quantity and deleting the booking record. Provide the `item_id` and the student username (`reserved_by`).",
+    request={
+        "type": "object",
+        "properties": {
+            "reserved_by": {"type": "string", "example": "student123"},
+            "item_id": {"type": "integer", "example": 1}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def return_item(request):
     """
     Return an item by student ID and item ID.
@@ -398,6 +637,26 @@ def return_item(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Get buildings by faculty",
+    description="Fetch all buildings associated with a given faculty name.",
+    parameters=[
+        {"name": "faculty_name", "in": "path", "required": True, "description": "Name of the faculty", "schema": {"type": "string"}}
+    ],
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "buildings": {
+                    "type": "array",
+                    "items": {"type": "object", "properties": {"id": {"type": "integer"}, "name": {"type": "string"}}}
+                }
+            }
+        },
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_buildings_by_faculty(request, faculty_name):
     """
     Get buildings by faculty name.
@@ -416,6 +675,33 @@ def get_buildings_by_faculty(request, faculty_name):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Get rooms by building",
+    description="Fetch all rooms (both rentable and with items) associated with a given building name.",
+    parameters=[
+        {"name": "building_name", "in": "path", "required": True, "description": "Name of the building", "schema": {"type": "string"}}
+    ],
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "rooms": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "number": {"type": "integer"},
+                            "type": {"type": "boolean"}
+                        }
+                    }
+                }
+            }
+        },
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_rooms_by_building(request, building_name):
     """
     Get all rooms by building name.
@@ -437,6 +723,18 @@ def get_rooms_by_building(request, building_name):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@extend_schema(
+    summary="Delete a student by ID",
+    description="Remove a student from the database using their unique ID.",
+    parameters=[
+        {"name": "student_id", "in": "path", "required": True, "description": "ID of the student to delete", "schema": {"type": "integer"}}
+    ],
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def delete_student(request, student_id):
     """
     Delete a student by ID.
@@ -453,6 +751,18 @@ def delete_student(request, student_id):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@extend_schema(
+    summary="Delete an admin by ID",
+    description="Remove an admin from the database using their unique ID.",
+    parameters=[
+        {"name": "admin_id", "in": "path", "required": True, "description": "ID of the admin to delete", "schema": {"type": "integer"}}
+    ],
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}}},
+        404: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def delete_admin(request, admin_id):
     """
     Delete an admin by ID.
@@ -469,6 +779,34 @@ def delete_admin(request, admin_id):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@extend_schema(
+    summary="Fetch all items",
+    description="Retrieve a list of all items, including their room, building, and faculty details.",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "name": {"type": "string"},
+                            "amount": {"type": "integer"},
+                            "room_id": {"type": "integer"},
+                            "item_owner": {"type": "string"},
+                            "room_number": {"type": "integer"},
+                            "building": {"type": "string"},
+                            "faculty": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        },
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_all_items(request):
     """
     Fetch all items.
@@ -492,6 +830,22 @@ def get_all_items(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@extend_schema(
+    summary="Admin login",
+    description="Authenticate an admin user by providing their username and password.",
+    request={
+        "type": "object",
+        "properties": {
+            "username": {"type": "string", "example": "admin123"},
+            "password": {"type": "string", "example": "securepassword"}
+        },
+    },
+    responses={
+        200: {"type": "object", "properties": {"message": {"type": "string"}, "csrf_token": {"type": "string"}}},
+        401: {"type": "object", "properties": {"error": {"type": "string"}}},
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def login(request):
     """
     Handle admin login.
@@ -523,6 +877,33 @@ def login(request):
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 @csrf_exempt
+@extend_schema(
+    summary="Fetch all reserved rooms",
+    description="Retrieve all reserved rooms with details such as building, faculty, and reservation period.",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "rooms": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "room_number": {"type": "integer"},
+                            "building": {"type": "string"},
+                            "faculty": {"type": "string"},
+                            "start_date": {"type": "string", "format": "date"},
+                            "end_date": {"type": "string", "format": "date"},
+                            "reserved_by": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        },
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}
+    },
+)
 def get_reserved_rooms(request):
     """
     Fetch all reserved rooms.
@@ -545,6 +926,33 @@ def get_reserved_rooms(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
+@extend_schema(
+    summary="Fetch all reserved items",
+    description="Retrieve all reserved items with details such as room, building, faculty, and reservation period.",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "name": {"type": "string"},
+                            "item_owner": {"type": "string"},
+                            "room_number": {"type": "integer"},
+                            "building": {"type": "string"},
+                            "faculty": {"type": "string"},
+                            "start_date": {"type": "string", "format": "date"},
+                            "end_date": {"type": "string", "format": "date"},
+                            "reserved_by": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        },
+        405: {"type": "object", "properties": {"error": {"type": "string"}}}})
 def get_reserved_items(request):
     """
     Fetch all reserved items.
@@ -567,3 +975,156 @@ def get_reserved_items(request):
         ]
         return JsonResponse({"items": item_list}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+@extend_schema(
+    summary="Get all bookings",
+    description="Retrieve all bookings from the database with details such as room number, building, faculty, reserved by, and the booking period.",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "bookings": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "room_id": {"type": "integer"},
+                            "room_number": {"type": "integer"},
+                            "building": {"type": "string"},
+                            "faculty": {"type": "string"},
+                            "reserved_by": {"type": "string"},
+                            "start_time": {"type": "string", "format": "date"},
+                            "end_time": {"type": "string", "format": "date"}
+                        }
+                    }
+                }
+            }
+        },
+        405: {"type": "object", "properties": {"error": {"type": "string"}}},
+    },
+)
+def get_all_bookings(request):
+    """
+    Fetch all bookings.
+    """
+    if request.method == "GET":
+        bookings = Booking.objects.select_related('room_to_rent', 'user')
+        booking_list = [
+            {
+                "id": booking.id,
+                "room_id": booking.room_to_rent.id,
+                "room_number": booking.room_to_rent.room_number,
+                "building": booking.room_to_rent.building.name,
+                "faculty": booking.room_to_rent.building.faculty.name,
+                "reserved_by": booking.user.username,
+                "start_time": booking.start_time,
+                "end_time": booking.end_time
+            }
+            for booking in bookings
+        ]
+        return JsonResponse({"bookings": booking_list}, status=200)
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def getTypes(self, request, *args, **kwargs):
+    types = Type.objects.all().values('id', 'type_name')
+    return JsonResponse(list(types), safe=False)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def createType(self, request, *args, **kwargs):
+     try:
+        data = json.loads(request.body)
+        type_name = data.get("type_name")
+        if type_name:
+            type_obj = Type.objects.create(type_name=type_name)
+            return JsonResponse({"id": type_obj.id, "type_name": type_obj.type_name}, status=201)
+        return JsonResponse({"error": "Type name is required."}, status=400)
+     except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def deleteType(self, request, *args, **kwargs):
+    try:
+        # Delete Type
+        data = json.loads(request.body)
+        type_id = data.get("id")
+        if type_id:
+            try:
+                type_obj = Type.objects.get(id=type_id)
+                type_obj.delete()
+                return JsonResponse({"message": "Type deleted successfully"}, status=204)
+            except ObjectDoesNotExist:
+                return JsonResponse({"error": "Type not found"}, status=404)
+        return JsonResponse({"error": "ID is required."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def getAttributes(self, request, *args, **kwargs):
+    # Fetch all Attributes
+    attributes = Attribute.objects.all().values('id', 'attribute_name')
+    return JsonResponse(list(attributes), safe=False)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def createAttribute(self, request, *args, **kwargs):
+    try:
+    # Create a new Attribute
+        data = json.loads(request.body)
+        attribute_name = data.get("attribute_name")
+        if attribute_name:
+            attribute_obj = Attribute.objects.create(attribute_name=attribute_name)
+            return JsonResponse({"id": attribute_obj.id, "attribute_name": attribute_obj.attribute_name},
+                            status=201)
+        return JsonResponse({"error": "Attribute name is required."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def deleteAttribute(self, request, *args, **kwargs):
+    try:
+        # Delete Attribute
+        data = json.loads(request.body)
+        attribute_id = data.get("id")
+        if attribute_id:
+            try:
+                attribute_obj = Attribute.objects.get(id=attribute_id)
+                attribute_obj.delete()
+                return JsonResponse({"message": "Attribute deleted successfully"}, status=204)
+            except ObjectDoesNotExist:
+                return JsonResponse({"error": "Attribute not found"}, status=404)
+        return JsonResponse({"error": "ID is required."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+def getType(self, request, *args, **kwargs):
+    if 'id' in kwargs:
+    # Fetch a specific type by ID
+        try:
+            type_obj = Type.objects.get(id=kwargs['id'])
+            return JsonResponse({'id': type_obj.id, 'type_name': type_obj.type_name})
+        except ObjectDoesNotExist:
+            return JsonResponse({"error": "Type not found"}, status=404)
+    else:
+        # Fetch all types
+        types = Type.objects.all().values('id', 'type_name')
+        return JsonResponse(list(types), safe=False)
+
+def getAttribute(self, request, *args, **kwargs):
+    if 'id' in kwargs:
+    # Fetch a specific attribute by ID
+        try:
+            attribute_obj = Attribute.objects.get(id=kwargs['id'])
+            return JsonResponse({'id': attribute_obj.id, 'attribute_name': attribute_obj.attribute_name})
+        except ObjectDoesNotExist:
+            return JsonResponse({"error": "Attribute not found"}, status=404)
+    else:
+        # Fetch all attributes
+        attributes = Attribute.objects.all().values('id', 'attribute_name')
+        return JsonResponse(list(attributes), safe=False)

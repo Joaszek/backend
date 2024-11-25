@@ -19,10 +19,16 @@ from django.urls import include, path
 
 from backendApp.Admin.views import login
 from backendApp.Student.views import student_login
+from rest_framework_swagger.views import get_swagger_view
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+schema_view = get_swagger_view(title='Pastebin API')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('student/login', student_login, name='student-login'),
     path('admin_paths/login', login, name='login'),
     path('student/', include('backendApp.Student.urls')),  # Include Student app routes
     path('admin_paths/', include('backendApp.Admin.urls')),      # Include Admin app routes
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+
 ]

@@ -28,7 +28,12 @@ INSTALLED_APPS = [
     'backendApp.ItemBooking',
     'backendApp.Admin',
     'backendApp.Student',
-    'backendApp'
+    'backendApp.Type',
+    'backendApp.Attribute',
+    'backendApp',
+    'drf_spectacular',
+    'rest_framework',
+    'rest_framework_swagger',
 ]
 
 MIDDLEWARE = [
@@ -39,7 +44,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'backendApp.middleware.CustomCORSHeadersMiddleware',  # Add the custom middleware
+    'backendApp.middleware.CustomCORSHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -103,3 +108,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'Student.Student'  # Specify the custom user model
 
 CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}

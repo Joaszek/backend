@@ -4,10 +4,10 @@ from django.conf import settings
 
 class Booking(models.Model):
     room_to_rent = models.OneToOneField(
-        'RoomToRent.RoomToRent', on_delete=models.CASCADE, related_name='bookings'
+        'RoomToRent.RoomToRent', on_delete=models.CASCADE, related_name='bookings', null=False
     )
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings', null=False
     )
     start_time = models.DateField()
     end_time = models.DateField()
