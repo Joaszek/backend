@@ -13,8 +13,7 @@ services:
       - "5432:5432"
 
   web:
-    build:
-      context: .
+    image: python_backend
     volumes:
       - .:/app
     ports:
@@ -26,13 +25,11 @@ services:
       - DATABASE_USER=myuser
       - DATABASE_PASSWORD=mypassword
       - DATABASE_HOST=db
-    command: >
-      sh -c "
-      python manage.py resetdb &&
-      python manage.py makemigrations &&
-      python manage.py migrate &&
-      python manage.py runserver 0.0.0.0:8000
-      "
+    entrypoint: >
+      sh -c "python manage.py makemigrations --noinput &&
+             python manage.py migrate &&
+             python manage.py resetdb &&
+             python manage.py runserver 0.0.0.0:8000"
 
 volumes:
   postgres_data:

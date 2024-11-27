@@ -85,6 +85,7 @@ def get_available_items(request):
     Fetch available items for students.
     """
     if request.method == "GET":
+        # Fetch items with positive amounts, excluding those already rented
         items = Item.objects.filter(amount__gt=0).exclude(id__in=ItemBooking.objects.values('item_id'))
         item_list = [
             {
@@ -92,7 +93,8 @@ def get_available_items(request):
                 "name": item.name,
                 "amount": item.amount,
                 "room_id": item.room_with_items.id,
-                "item_owner": item.item_owner,
+                "type": item.type,  # Use type field directly
+                "attribute": item.attribute,  # Use attribute field directly
                 "room_number": item.room_with_items.room_number,
                 "building": item.room_with_items.building.name,
                 "faculty": item.room_with_items.building.faculty.name
@@ -104,7 +106,6 @@ def get_available_items(request):
 
 
 @csrf_exempt
-
 def rent_item(request):
     """
     Allow students to rent an item.
@@ -207,7 +208,8 @@ def get_reserved_items(request, username):
                 "name": item.item.name,
                 "amount": item.item.amount,
                 "room_id": item.item.room_with_items.id,
-                "item_owner": item.item.item_owner,
+                "type": item.item.type,  # Use type field directly
+                "attribute": item.item.attribute,  # Use attribute field directly
                 "room_number": item.item.room_with_items.room_number,
                 "building": item.item.room_with_items.building.name,
                 "faculty": item.item.room_with_items.building.faculty.name,

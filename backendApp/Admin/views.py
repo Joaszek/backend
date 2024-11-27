@@ -471,39 +471,52 @@ def add_item(request):
     """
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
-            building_number = data.get('building_number')
-            room_number = data.get('room_number')
-            item_owner = data.get('item_owner')
-            item_name = data.get('item_name')
-            item_amount = data.get('item_amount')
+            data = request.data
+            name = data.get('name')
+            amount = data.get('amount')
+            room_id = data.get('room_with_items')
+            item_type = data.get('type')  # Expecting a string
+            attribute = data.get('attribute')  # Expecting a string
 
-            if not building_number:
-                return JsonResponse({"error": "Invalid data. 'building_number' is required."}, status=400)
-            if not room_number:
-                return JsonResponse({"error": "Invalid data. 'room_number' is required."}, status=400)
-            if not item_owner:
-                return JsonResponse({"error": "Invalid data. 'item_owner' is required."}, status=400)
-            if not item_name:
-                return JsonResponse({"error": "Invalid data. 'item_name' is required."}, status=400)
-            if item_amount is None:
-                return JsonResponse({"error": "Invalid data. 'item_amount' is required."}, status=400)
+            if not all([name, amount, room_id, item_type, attribute]):
+                return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Fetch the room
+            RoomWithItems = apps.get_model('RoomWithItems', 'RoomWithItems')
+            room = RoomWithItems.objects.get(id=room_id)
+
+            # Create the item
+            Item = apps.get_model('Item', 'Item')
+            item = Item.objects.create(
+                name=name,
+                amount=amount,
+                room_with_items=room,
+                type=item_type,
+                attribute=attribute
+            )
 
             try:
-                room = RoomWithItems.objects.get(building__name=building_number, room_number=room_number)
-            except RoomWithItems.DoesNotExist:
-                return JsonResponse({"error": "Room not found"}, status=404)
+                # Fetch type and attribute names
+                type_name = data.get('type')
+                attribute_name = data.get('attribute')
 
-            new_item = Item.objects.create(
-                name=item_name,
-                amount=item_amount,
-                room_with_items=room,
-                item_owner=item_owner
-            )
-            return JsonResponse({"message": f"Item '{new_item.name}' added successfully"}, status=201)
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+                # Validate if the type and attribute exist
+                Type = apps.get_model('backendApp', 'Type')
+                Attribute = apps.get_model('backendApp', 'Attribute')
+
+                if not Type.objects.filter(type_name=type_name).exists():
+                    return Response({'error': 'Invalid type name.'}, status=status.HTTP_400_BAD_REQUEST)
+                if not Attribute.objects.filter(attribute_name=attribute_name).exists():
+                    return Response({'error': 'Invalid attribute name.'}, status=status.HTTP_400_BAD_REQUEST)
+            except:
+                    return Response({'Could not create type or attribute. Error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            return Response({'message': 'Item created successfully', 'item_id': item.id}, status=status.HTTP_201_CREATED)
+        except RoomWithItems.DoesNotExist:
+            return Response({'error': 'Room not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @csrf_exempt
 @extend_schema(
@@ -811,23 +824,22 @@ def get_all_items(request):
     """
     Fetch all items.
     """
-    if request.method == "GET":
+    try:
+        Item = apps.get_model('Item', 'Item')
         items = Item.objects.all()
-        item_list = [
-            {
-                "id": item.id,
-                "name": item.name,
-                "amount": item.amount,
-                "room_id": item.room_with_items.id,
-                "item_owner": item.item_owner,
-                "room_number": item.room_with_items.room_number,
-                "building": item.room_with_items.building.name,
-                "faculty": item.room_with_items.building.faculty.name
-            }
-            for item in items
-        ]
-        return JsonResponse({"items": item_list}, status=200)
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+        item_list = [{
+            'id': item.id,
+            'name': item.name,
+            'amount': item.amount,
+            'room_with_items': item.room_with_items.id,
+            'type': item.type,
+            'attribute': item.attribute
+        } for item in items]
+
+        return Response({'items': item_list}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @extend_schema(
@@ -958,22 +970,23 @@ def get_reserved_items(request):
     Fetch all reserved items.
     """
     if request.method == "GET":
-        items = ItemBooking.objects.select_related('item', 'user')
-        item_list = [
-            {
-                "id": item.item.id,
-                "name": item.item.name,
-                "item_owner": item.item.item_owner,
-                "room_number": item.item.room_with_items.room_number,
-                "building": item.item.room_with_items.building.name,
-                "faculty": item.item.room_with_items.building.faculty.name,
-                "start_date": item.start_date,
-                "end_date": item.end_date,
-                "reserved_by": item.user.username
-            }
-            for item in items
-        ]
-        return JsonResponse({"items": item_list}, status=200)
+        try:
+            Item = apps.get_model('Item', 'Item')
+            reserved_items = Item.objects.filter(amount__lt=10)  # Example filter
+
+            item_list = [{
+                'id': item.id,
+                'name': item.name,
+                'amount': item.amount,
+                'room_with_items': item.room_with_items.id,
+                'type': item.type,
+                'attribute': item.attribute
+            } for item in reserved_items]
+
+            return Response({'reserved_items': item_list}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -1029,79 +1042,88 @@ def get_all_bookings(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
-def getTypes(self, request, *args, **kwargs):
-    types = Type.objects.all().values('id', 'type_name')
-    return JsonResponse(list(types), safe=False)
+def getTypes(self, request):
+    try:
+        Type = apps.get_model('backendApp', 'Type')  # Update to match your app name
+        types = Type.objects.all()
+
+        type_list = [{'id': type.id, 'type_name': type.type_name} for type in types]
+        return Response({'types': type_list}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def createType(self, request, *args, **kwargs):
-     try:
-        data = json.loads(request.body)
-        type_name = data.get("type_name")
-        if type_name:
-            type_obj = Type.objects.create(type_name=type_name)
-            return JsonResponse({"id": type_obj.id, "type_name": type_obj.type_name}, status=201)
-        return JsonResponse({"error": "Type name is required."}, status=400)
-     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    try:
+        data = request.data
+        type_name = data.get('type_name')
+
+        if not type_name:
+            return Response({'error': 'Type name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        Type = apps.get_model('backendApp', 'Type')  # Update to match your app name
+        new_type = Type.objects.create(type_name=type_name)
+        return Response({'message': 'Type created successfully', 'type_id': new_type.id}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def deleteType(self, request, *args, **kwargs):
     try:
-        # Delete Type
-        data = json.loads(request.body)
-        type_id = data.get("id")
-        if type_id:
-            try:
-                type_obj = Type.objects.get(id=type_id)
-                type_obj.delete()
-                return JsonResponse({"message": "Type deleted successfully"}, status=204)
-            except ObjectDoesNotExist:
-                return JsonResponse({"error": "Type not found"}, status=404)
-        return JsonResponse({"error": "ID is required."}, status=400)
+        Type = apps.get_model('backendApp', 'Type')  # Update to match your app name
+        type_obj = Type.objects.get(id=type_id)
+        type_obj.delete()
+        return Response({'message': 'Type deleted successfully'}, status=status.HTTP_200_OK)
+    except Type.DoesNotExist:
+        return Response({'error': 'Type not found.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @csrf_exempt
 def getAttributes(self, request, *args, **kwargs):
     # Fetch all Attributes
-    attributes = Attribute.objects.all().values('id', 'attribute_name')
-    return JsonResponse(list(attributes), safe=False)
+    try:
+        Attribute = apps.get_model('backendApp', 'Attribute')  # Update to match your app name
+        attributes = Attribute.objects.all()
+
+        attribute_list = [{'id': attr.id, 'attribute_name': attr.attribute_name} for attr in attributes]
+        return Response({'attributes': attribute_list}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def createAttribute(self, request, *args, **kwargs):
     try:
-    # Create a new Attribute
-        data = json.loads(request.body)
-        attribute_name = data.get("attribute_name")
-        if attribute_name:
-            attribute_obj = Attribute.objects.create(attribute_name=attribute_name)
-            return JsonResponse({"id": attribute_obj.id, "attribute_name": attribute_obj.attribute_name},
-                            status=201)
-        return JsonResponse({"error": "Attribute name is required."}, status=400)
+        data = request.data
+        attribute_name = data.get('attribute_name')
+
+        if not attribute_name:
+            return Response({'error': 'Attribute name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        Attribute = apps.get_model('backendApp', 'Attribute')  # Update to match your app name
+        new_attribute = Attribute.objects.create(attribute_name=attribute_name)
+        return Response({'message': 'Attribute created successfully', 'attribute_id': new_attribute.id}, status=status.HTTP_201_CREATED)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def deleteAttribute(self, request, *args, **kwargs):
     try:
-        # Delete Attribute
-        data = json.loads(request.body)
-        attribute_id = data.get("id")
-        if attribute_id:
-            try:
-                attribute_obj = Attribute.objects.get(id=attribute_id)
-                attribute_obj.delete()
-                return JsonResponse({"message": "Attribute deleted successfully"}, status=204)
-            except ObjectDoesNotExist:
-                return JsonResponse({"error": "Attribute not found"}, status=404)
-        return JsonResponse({"error": "ID is required."}, status=400)
+        Attribute = apps.get_model('backendApp', 'Attribute')  # Update to match your app name
+        attribute = Attribute.objects.get(id=attribute_id)
+        attribute.delete()
+        return Response({'message': 'Attribute deleted successfully'}, status=status.HTTP_200_OK)
+    except Attribute.DoesNotExist:
+        return Response({'error': 'Attribute not found.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def getType(self, request, *args, **kwargs):
     if 'id' in kwargs:

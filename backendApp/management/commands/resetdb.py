@@ -8,16 +8,16 @@ class Command(BaseCommand):
     help = "Resets the database and populates initial data"
 
     def handle(self, *args, **kwargs):
-        # Step 1: Reset the database
+        # Step 1: Drop and recreate the database schema
         with connection.cursor() as cursor:
-            self.stdout.write("Dropping and recreating database schema...")
+            self.stdout.write("Dropping and recreating the database schema...")
             cursor.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
         self.stdout.write("Database schema reset successfully.")
 
-        # Step 2: Apply migrations
+        # Step 2: Run migrations
         self.stdout.write("Applying migrations...")
         from django.core.management import call_command
-        call_command("migrate")
+        call_command("migrate", "--noinput")
         self.stdout.write("Migrations applied successfully.")
 
         # Step 3: Populate initial data
@@ -36,10 +36,7 @@ class Command(BaseCommand):
         RoomToRent = apps.get_model('RoomToRent', 'RoomToRent')
         RoomWithItems = apps.get_model('RoomWithItems', 'RoomWithItems')
         Item = apps.get_model('Item', 'Item')
-        ItemBooking = apps.get_model('ItemBooking', 'ItemBooking')
         Booking = apps.get_model('Booking', 'Booking')
-        Type = apps.get_model('Type', 'Type')
-        Attribute = apps.get_model('Attribute', 'Attribute')
 
         # Create initial Faculty and Building
         admin, _ = Admin.objects.get_or_create(
@@ -69,26 +66,31 @@ class Command(BaseCommand):
         )
 
         # Create Bookings
-        Booking.objects.create(room_to_rent=room_to_rent, user=student, start_time=now().date(), end_time=now().date() + timedelta(days=7))
+        Booking.objects.create(
+            room_to_rent=room_to_rent,
+            user=student,
+            start_time=now().date(),
+            end_time=now().date() + timedelta(days=7),
+        )
 
-        # Create Types and Attributes
-        # laptop_type, _ = Type.objects.get_or_create(type_name="Laptop")
-        # charger_type, _ = Type.objects.get_or_create(type_name="Charger")
-        # mouse_type, _ = Type.objects.get_or_create(type_name="Mouse")
-        #
-        # laptop_attribute, _ = Attribute.objects.get_or_create(attribute_name="Portable")
-        # charger_attribute, _ = Attribute.objects.get_or_create(attribute_name="Charging")
-        # mouse_attribute, _ = Attribute.objects.get_or_create(attribute_name="Wireless")
-        #
-        # # Create Items
-        # Item.objects.create(
-        #     name="Laptop 1", amount=5, room_with_items=room_with_items, type=laptop_type, attribute=laptop_attribute
-        # )
-        # Item.objects.create(
-        #     name="Charger 1", amount=10, room_with_items=room_with_items, type=charger_type, attribute=charger_attribute
-        # )
-        # Item.objects.create(
-        #     name="Mouse 1", amount=8, room_with_items=room_with_items, type=mouse_type, attribute=mouse_attribute
-        # )
+        # Predefined Types and Attributes
+        types = ["Laptop", "Charger", "Mouse"]
+        attributes = ["Portable", "Charging", "Wireless"]
+
+        # Create Items with a one-to-many relationship to RoomWithItems
+        items = [
+            {"name": "Laptop 1", "amount": 5, "type": types[0], "attribute": attributes[0]},
+            {"name": "Charger 1", "amount": 10, "type": types[1], "attribute": attributes[1]},
+            {"name": "Mouse 1", "amount": 8, "type": types[2], "attribute": attributes[2]},
+        ]
+
+        for item_data in items:
+            Item.objects.create(
+                name=item_data["name"],
+                amount=item_data["amount"],
+                room_with_items=room_with_items,
+                type=item_data["type"],
+                attribute=item_data["attribute"],
+            )
 
         self.stdout.write("Initial data creation complete.")

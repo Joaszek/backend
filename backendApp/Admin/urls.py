@@ -32,7 +32,7 @@ urlpatterns = [
     path('types/create/', views.createType, name='type-create'),  # POST create new type
     path('types/delete/', views.deleteType, name='type-delete'),  # DELETE type by ID
     path('types/<int:id>/', views.getType, name='attribute-detail'),
-
+    path('bookings', views.get_all_bookings, name='get-all-bookings'),
     # Attribute URLs
     path('attributes/', views.getAttributes, name='attribute-list'),
     # GET all attributes and POST create new attribute
