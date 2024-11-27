@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.db import connection
 from django.contrib.auth.hashers import make_password
-from django.utils.timezone import now, timedelta
-
+from django.utils.timezone import now
+from datetime import timedelta
 
 class Command(BaseCommand):
     help = "Resets the database and populates initial data"
@@ -25,6 +25,10 @@ class Command(BaseCommand):
         self.create_initial_data()
         self.stdout.write("Initial data populated successfully.")
 
+    from datetime import timedelta
+    from django.utils.timezone import now
+    from django.contrib.auth.hashers import make_password
+
     def create_initial_data(self):
         from django.apps import apps
 
@@ -37,8 +41,11 @@ class Command(BaseCommand):
         RoomWithItems = apps.get_model('RoomWithItems', 'RoomWithItems')
         Item = apps.get_model('Item', 'Item')
         Booking = apps.get_model('Booking', 'Booking')
+        Attribute = apps.get_model('Attribute', 'Attribute')
+        Type = apps.get_model('Type', 'Type')
+        ItemBooking = apps.get_model('ItemBooking', 'ItemBooking')
 
-        # Create initial Faculty and Building
+        # Create initial Admin
         admin, _ = Admin.objects.get_or_create(
             username="123456",
             defaults={
@@ -46,16 +53,33 @@ class Command(BaseCommand):
                 "email": "admin1@example.com",
                 "additional_field": "Admin data",
                 "is_superuser": True,
+                "first_name": "Adam",
+                "last_name": "Kowalski",
+                "is_staff": True,
             },
         )
-        faculty = Faculty.objects.create(name="Engineering Faculty", admin=admin)
-        building = Building.objects.create(name="B1", faculty=faculty)
+
+        # Create initial Faculty and Building
+        faculty, _ = Faculty.objects.get_or_create(
+            name="Engineering-Faculty",
+            defaults={"admin_id": admin.id}
+        )
+        building, _ = Building.objects.get_or_create(
+            name="B1",
+            faculty='Engineering-Faculty'
+        )
 
         # Create Rooms
-        room_to_rent = RoomToRent.objects.create(room_number=101, building=building)
-        room_with_items = RoomWithItems.objects.create(room_number=102, building=building)
+        room_to_rent, _ = RoomToRent.objects.get_or_create(
+            room_number=101,
+            defaults={"building": building.name, "faculty": faculty.name}
+        )
+        room_with_items, _ = RoomWithItems.objects.get_or_create(
+            room_number=102,
+            defaults={"building": building.name}
+        )
 
-        # Create Users
+        # Create Student
         student, _ = Student.objects.get_or_create(
             username="123456",
             defaults={
@@ -65,32 +89,61 @@ class Command(BaseCommand):
             },
         )
 
-        # Create Bookings
-        Booking.objects.create(
-            room_to_rent=room_to_rent,
-            user=student,
-            start_time=now().date(),
-            end_time=now().date() + timedelta(days=7),
+        # Create Booking
+        Booking.objects.get_or_create(
+            room_id=room_to_rent.room_to_rent_id,
+            defaults={
+                "user": student.username,
+                "start_time": now().date(),
+                "end_time": now().date() + timedelta(days=7),
+                "building": building.name,
+                "faculty": faculty.name,
+            },
         )
 
         # Predefined Types and Attributes
         types = ["Laptop", "Charger", "Mouse"]
         attributes = ["Portable", "Charging", "Wireless"]
 
+        # Create Types
+        for type_name in types:
+            Type.objects.get_or_create(type_name=type_name)
+
+        # Create Attributes
+        for attribute_name in attributes:
+            Attribute.objects.get_or_create(attribute_name=attribute_name)
+
         # Create Items with a one-to-many relationship to RoomWithItems
         items = [
-            {"name": "Laptop 1", "amount": 5, "type": types[0], "attribute": attributes[0]},
-            {"name": "Charger 1", "amount": 10, "type": types[1], "attribute": attributes[1]},
-            {"name": "Mouse 1", "amount": 8, "type": types[2], "attribute": attributes[2]},
+            {"name": "Laptop 1", "amount": 5, "type": "Laptop", "attribute": "Portable"},
+            {"name": "Charger 1", "amount": 10, "type": "Charger", "attribute": "Charging"},
+            {"name": "Mouse 1", "amount": 8, "type": "Mouse", "attribute": "Wireless"},
         ]
 
+        created_items = []
         for item_data in items:
-            Item.objects.create(
+            item, _ = Item.objects.get_or_create(
                 name=item_data["name"],
-                amount=item_data["amount"],
-                room_with_items=room_with_items,
-                type=item_data["type"],
-                attribute=item_data["attribute"],
+                defaults={
+                    "amount": item_data["amount"],
+                    "room_with_items": room_with_items.id,
+                    "type": item_data["type"],
+                    "attribute": item_data["attribute"],
+                    "faculty": faculty.name,
+                    "building": building.name,
+                },
+            )
+            created_items.append(item)
+
+        # Create ItemBooking data
+        for item in created_items:
+            ItemBooking.objects.get_or_create(
+                item_id=item.item_id,
+                defaults={
+                    "student_id": student.username,
+                    "start_date": now().date(),
+                    "end_date": now().date() + timedelta(days=5),
+                },
             )
 
         self.stdout.write("Initial data creation complete.")

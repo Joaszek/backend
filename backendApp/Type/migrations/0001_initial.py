@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='Type',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('type_name', models.CharField(max_length=100, unique=True)),
+                ('type_name', models.CharField(max_length=100, unique=True, null=False)),
             ],
         ),
     ]

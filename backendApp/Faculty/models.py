@@ -1,12 +1,9 @@
 from django.db import models
 
-
 class Faculty(models.Model):
-    id = models.AutoField(primary_key=True)
+    faculty_id = models.CharField(max_length=100, unique=False, default='Unknown')
     name = models.CharField(max_length=255, unique=True)
-    admin = models.ForeignKey(
-        'Admin.Admin', on_delete=models.CASCADE, related_name='faculties'
-    )
+    admin_id = models.CharField(max_length=100, unique=False, default='Unknown')
 
     def __str__(self):
         return self.name
