@@ -6,6 +6,8 @@ class RoomWithItems(models.Model):
     room_number = models.IntegerField()
     is_to_rent = models.BooleanField(default=False, editable=False, blank=True)
     building = models.CharField(max_length=100, unique=False, default='Unknown')
+    faculty = models.CharField(max_length=100, unique=False, default='Unknown')
+
     class Meta:
         unique_together = ('room_number', 'building')  # Ograniczenie unikalności
 

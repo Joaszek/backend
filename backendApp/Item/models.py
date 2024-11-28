@@ -1,7 +1,7 @@
 from django.db import models
 
 class Item(models.Model):
-    item_id = models.CharField(max_length=100, unique=False, default='Unknown')
+    item_id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=60, unique=True)
     amount = models.IntegerField()
     room_with_items = models.CharField(max_length=100, unique=False, default='Unknown')

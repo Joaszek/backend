@@ -2,7 +2,7 @@ from django.db import models
 
 
 class RoomToRent(models.Model):
-    room_to_rent_id = models.CharField(max_length=100, unique=False, default='Unknown')
+    id = models.AutoField(primary_key=True)
     room_number = models.IntegerField()
     is_to_rent = models.BooleanField(default=True, editable=False, blank=True)
     building = models.CharField(max_length=100, unique=False, default='Unknown')

@@ -26,12 +26,12 @@ urlpatterns = [
     path('get_all_items', views.get_all_items, name='get_all_items'),
     path('get_reserved_rooms', views.get_reserved_rooms, name='get_reserved_rooms'),
     path('get_reserved_items', views.get_reserved_items, name='get_reserved_items'),
-    path('types/', views.getTypes, name='get_types'),  # GET all types and POST create new type
+    path('types', views.getTypes, name='get_types'),  # GET all types and POST create new type
     path('types/create/', views.createType, name='type-create'),  # POST create new type
     path('types/delete/', views.deleteType, name='type-delete'),  # DELETE type by ID
     path('bookings', views.get_all_bookings, name='get-all-bookings'),
     # Attribute URLs
-    path('attributes/', views.getAttributes, name='attribute-list'),
+    path('attributes', views.getAttributes, name='attribute-list'),
     path('attributes/create/', views.createAttribute, name='attribute-create'),  # POST create new attribute
     path('attributes/delete/', views.deleteAttribute, name='attribute-delete'),  # DELETE attribute by ID
 ]

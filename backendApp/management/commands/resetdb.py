@@ -1,119 +1,150 @@
 from django.core.management.base import BaseCommand
 from django.db import connection
+import os
+import shutil
+from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils.timezone import now
 from datetime import timedelta
 
+
 class Command(BaseCommand):
-    help = "Resets the database and populates initial data"
+    help = "Fully resets the database and populates initial data"
 
     def handle(self, *args, **kwargs):
-        # Step 1: Drop and recreate the database schema
+        self.stdout.write("Starting database reset process...")
+
+        # Step 1: Drop the database schema
+        self.reset_database()
+
+        # Step 2: Delete all migration files
+        self.delete_migration_files()
+
+        # Step 3: Reapply migrations
+        self.apply_migrations()
+
+        # Step 4: Populate initial data
+        self.create_initial_data()
+
+        self.stdout.write("Database reset and initial data population completed successfully.")
+
+    def reset_database(self):
+        """
+        Drops and recreates the database schema.
+        """
         with connection.cursor() as cursor:
             self.stdout.write("Dropping and recreating the database schema...")
             cursor.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
         self.stdout.write("Database schema reset successfully.")
 
-        # Step 2: Run migrations
+    def delete_migration_files(self):
+        """
+        Deletes all migration files from the project.
+        """
+        self.stdout.write("Deleting migration files...")
+        for app_name in settings.INSTALLED_APPS:
+            app_path = app_name.split(".")[0]
+            migration_path = os.path.join(settings.BASE_DIR, app_path, "migrations")
+            if os.path.exists(migration_path):
+                for file_name in os.listdir(migration_path):
+                    if file_name != "__init__.py" and file_name.endswith(".py"):
+                        file_path = os.path.join(migration_path, file_name)
+                        os.remove(file_path)
+                        self.stdout.write(f"Deleted: {file_path}")
+        self.stdout.write("Migration files deleted.")
+
+    def apply_migrations(self):
+        """
+        Reapplies all migrations.
+        """
         self.stdout.write("Applying migrations...")
         from django.core.management import call_command
+        call_command("makemigrations")
         call_command("migrate", "--noinput")
         self.stdout.write("Migrations applied successfully.")
 
-        # Step 3: Populate initial data
-        self.stdout.write("Populating initial data...")
-        self.create_initial_data()
-        self.stdout.write("Initial data populated successfully.")
-
-    from datetime import timedelta
-    from django.utils.timezone import now
-    from django.contrib.auth.hashers import make_password
-
     def create_initial_data(self):
+        """
+        Populates initial data into the database.
+        """
+        self.stdout.write("Populating initial data...")
         from django.apps import apps
 
-        # Get the models dynamically
-        Student = apps.get_model('Student', 'Student')
-        Admin = apps.get_model('Admin', 'Admin')
-        Faculty = apps.get_model('Faculty', 'Faculty')
-        Building = apps.get_model('Building', 'Building')
-        RoomToRent = apps.get_model('RoomToRent', 'RoomToRent')
-        RoomWithItems = apps.get_model('RoomWithItems', 'RoomWithItems')
-        Item = apps.get_model('Item', 'Item')
-        Booking = apps.get_model('Booking', 'Booking')
-        Attribute = apps.get_model('Attribute', 'Attribute')
-        Type = apps.get_model('Type', 'Type')
-        ItemBooking = apps.get_model('ItemBooking', 'ItemBooking')
+        # Get models dynamically
+        Student = apps.get_model("Student", "Student")
+        Admin = apps.get_model("Admin", "Admin")
+        Faculty = apps.get_model("Faculty", "Faculty")
+        Building = apps.get_model("Building", "Building")
+        RoomToRent = apps.get_model("RoomToRent", "RoomToRent")
+        RoomWithItems = apps.get_model("RoomWithItems", "RoomWithItems")
+        Item = apps.get_model("Item", "Item")
+        Booking = apps.get_model("Booking", "Booking")
+        Attribute = apps.get_model("Attribute", "Attribute")
+        Type = apps.get_model("Type", "Type")
+        ItemBooking = apps.get_model("ItemBooking", "ItemBooking")
 
-        # Create initial Admin
-        admin, _ = Admin.objects.get_or_create(
+        # Create initial admin
+        admin = Admin.objects.create(
             username="123456",
-            defaults={
-                "password": make_password("admin123"),
-                "email": "admin1@example.com",
-                "additional_field": "Admin data",
-                "is_superuser": True,
-                "first_name": "Adam",
-                "last_name": "Kowalski",
-                "is_staff": True,
-            },
+            password=make_password("admin123"),
+            email="admin1@example.com",
+            additional_field="Admin data",
+            is_superuser=True,
+            first_name="Adam",
+            last_name="Kowalski",
+            is_staff=True,
         )
 
-        # Create initial Faculty and Building
-        faculty, _ = Faculty.objects.get_or_create(
+        # Create initial faculty and building
+        faculty = Faculty.objects.create(
             name="Engineering-Faculty",
-            defaults={"admin_id": admin.id}
+            admin_id=admin.id,
         )
-        building, _ = Building.objects.get_or_create(
+        building = Building.objects.create(
             name="B1",
-            faculty='Engineering-Faculty'
+            faculty="Engineering-Faculty",
         )
 
-        # Create Rooms
-        room_to_rent, _ = RoomToRent.objects.get_or_create(
+        # Create rooms
+        room_to_rent = RoomToRent.objects.create(
             room_number=101,
-            defaults={"building": building.name, "faculty": faculty.name}
+            building=building.name,
+            faculty=faculty.name,
         )
-        room_with_items, _ = RoomWithItems.objects.get_or_create(
+        room_with_items = RoomWithItems.objects.create(
             room_number=102,
-            defaults={"building": building.name}
+            building=building.name,
         )
 
-        # Create Student
-        student, _ = Student.objects.get_or_create(
+        # Create student
+        student = Student.objects.create(
             username="123456",
-            defaults={
-                "password": make_password("student123"),
-                "email": "student1@example.com",
-                "additional_field": "Student data",
-            },
+            password=make_password("student123"),
+            email="student1@example.com",
+            additional_field="Student data",
         )
 
-        # Create Booking
-        Booking.objects.get_or_create(
-            room_id=room_to_rent.room_to_rent_id,
-            defaults={
-                "user": student.username,
-                "start_time": now().date(),
-                "end_time": now().date() + timedelta(days=7),
-                "building": building.name,
-                "faculty": faculty.name,
-            },
+        # Create booking
+        Booking.objects.create(
+            room_id=room_to_rent.id,
+            user=student.username,
+            start_time=now().date(),
+            end_time=now().date() + timedelta(days=7),
+            building=building.name,
+            faculty=faculty.name,
         )
 
-        # Predefined Types and Attributes
+        # Predefined types and attributes
         types = ["Laptop", "Charger", "Mouse"]
         attributes = ["Portable", "Charging", "Wireless"]
 
-        # Create Types
         for type_name in types:
-            Type.objects.get_or_create(type_name=type_name)
+            Type.objects.create(type_name=type_name)
 
-        # Create Attributes
         for attribute_name in attributes:
-            Attribute.objects.get_or_create(attribute_name=attribute_name)
+            Attribute.objects.create(attribute_name=attribute_name)
 
-        # Create Items with a one-to-many relationship to RoomWithItems
+        # Create items
         items = [
             {"name": "Laptop 1", "amount": 5, "type": "Laptop", "attribute": "Portable"},
             {"name": "Charger 1", "amount": 10, "type": "Charger", "attribute": "Charging"},
@@ -122,28 +153,24 @@ class Command(BaseCommand):
 
         created_items = []
         for item_data in items:
-            item, _ = Item.objects.get_or_create(
+            item = Item.objects.create(
                 name=item_data["name"],
-                defaults={
-                    "amount": item_data["amount"],
-                    "room_with_items": room_with_items.id,
-                    "type": item_data["type"],
-                    "attribute": item_data["attribute"],
-                    "faculty": faculty.name,
-                    "building": building.name,
-                },
+                amount=item_data["amount"],
+                room_with_items=room_with_items.id,
+                type=item_data["type"],
+                attribute=item_data["attribute"],
+                faculty=faculty.name,
+                building=building.name,
             )
             created_items.append(item)
 
-        # Create ItemBooking data
+        # Create item bookings
         for item in created_items:
-            ItemBooking.objects.get_or_create(
+            ItemBooking.objects.create(
                 item_id=item.item_id,
-                defaults={
-                    "student_id": student.username,
-                    "start_date": now().date(),
-                    "end_date": now().date() + timedelta(days=5),
-                },
+                student_id=student.username,
+                start_date=now().date(),
+                end_date=now().date() + timedelta(days=5),
             )
 
-        self.stdout.write("Initial data creation complete.")
+        self.stdout.write("Initial data population complete.")
