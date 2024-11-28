@@ -790,22 +790,30 @@ def get_all_items(request):
     """
     Fetch all items.
     """
-    try:
-        Item = apps.get_model('Item', 'Item')
-        items = Item.objects.all()
 
-        item_list = [{
-            'id': item.id,
-            'name': item.name,
-            'amount': item.amount,
-            'room_with_items': item.room_with_items.id,
-            'type': item.type,
-            'attribute': item.attribute
-        } for item in items]
+    print("Entered function")
+    if request.method == "GET":
+        try:
+            Item = apps.get_model('Item', 'Item')
+            items = Item.objects.all()
+            print("Items in the database: ",items)
+            item_list = [{
+                'id': item.item_id,
+                'name': item.name,
+                'amount': item.amount,
+                'room_with_items': item.room_with_items,
+                'type': item.type,
+                'attribute': item.attribute,
+                'user': item.user,
+                'start_date': item.start_date,
+                'end_date': item.end_date,
+                'building': item.building,
+                'faculty': item.faculty
+            } for item in items]
 
-        return JsonResponse({'items': item_list}, status=200)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'items': item_list}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 @extend_schema(
