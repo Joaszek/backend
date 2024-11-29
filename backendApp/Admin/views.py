@@ -314,6 +314,7 @@ def add_room(request):
             room_number = data.get('room_number')
             is_room_for_rent = data.get('is_room_for_rent', False)
             building_name = data.get('building_name')
+            faculty_name = data.get('faculty_name')
 
             # Validate input
             if not room_number:
@@ -325,12 +326,14 @@ def add_room(request):
             if is_room_for_rent:
                 new_room = RoomToRent.objects.create(
                     room_number=room_number,
-                    building=building_name  # Store building name as string
+                    building=building_name,  # Store building name as string
+                    faculty=faculty_name
                 )
             else:
                 new_room = RoomWithItems.objects.create(
                     room_number=room_number,
-                    building=building_name  # Store building name as string
+                    building=building_name,  # Store building name as string
+                    faculty=faculty_name
                 )
 
             return JsonResponse({"message": f"Room '{new_room.room_number}' added successfully"}, status=201)
@@ -597,6 +600,9 @@ def return_room(request):
         booking.returned = True
         booking.save()
 
+        room.available = True
+        room.save()
+
         return JsonResponse({"message": f"Room {room_number} marked as returned by student {reserved_by} successfully"},
                             status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -620,6 +626,7 @@ def return_room(request):
         405: {"type": "object", "properties": {"error": {"type": "string"}}}
     },
 )
+@csrf_exempt
 def return_item(request):
     """
     Return an item by student ID and item ID.
@@ -637,20 +644,19 @@ def return_item(request):
         except Item.DoesNotExist:
             return JsonResponse({"error": "Item not found"}, status=404)
 
-        try:
-            itemBooking = ItemBooking.objects.get(item_id=item_id, student_id=reserved_by)
-        except ItemBooking.DoesNotExist:
-            return JsonResponse({"error": "Booking not found"}, status=404)
+        itemBookings = ItemBooking.objects.filter(item_id=item_id, student_id=reserved_by, returned=False)
+        if not itemBookings.exists():
+            return JsonResponse({"error": "Booking not found or already returned"}, status=404)
 
         # Increase the item amount
         item.amount += 1
         item.save()
 
-        # Delete the booking
-        itemBooking.end_time = datetime.now()
-        itemBooking.returned = True
-        itemBooking.save()
-        itemBooking.delete()
+        # Update the bookings to mark them as returned
+        for itemBooking in itemBookings:
+            itemBooking.end_date = datetime.now().strftime('%Y-%m-%d')
+            itemBooking.returned = True
+            itemBooking.save()
 
         return JsonResponse({"message": f"Item {item_id} returned by student {reserved_by} successfully"}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -1211,3 +1217,26 @@ def deleteAttribute(request):
             return JsonResponse({'error': 'Attribute not found.'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_returned_item_bookings(request):
+    """
+    Fetch all item bookings where returned is True.
+    """
+    try:
+        item_bookings = ItemBooking.objects.filter(returned=True)
+        booking_list = [
+            {
+                "id": booking.id,
+                "item_id": booking.item_id,
+                "student_id": booking.student_id,
+                "start_date": booking.start_date,
+                "end_date": booking.end_date,
+                "returned": booking.returned
+            }
+            for booking in item_bookings
+        ]
+        return JsonResponse({"item_bookings": booking_list}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

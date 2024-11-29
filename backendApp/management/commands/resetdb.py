@@ -95,14 +95,25 @@ class Command(BaseCommand):
             is_staff=True,
         )
 
+        admin2 = Admin.objects.create(
+            username="123457",
+            password=make_password("admin123"),
+            email="admin2@example.com",
+            additional_field="Admin data",
+            is_superuser=True,
+            first_name="Adam",
+            last_name="Kowalski",
+            is_staff=False,
+        )
+
         # Create initial faculty and building
         faculty = Faculty.objects.create(
-            name="Engineering-Faculty",
+            name="W04N",
             admin_id=admin.id,
         )
         building = Building.objects.create(
             name="B1",
-            faculty="Engineering-Faculty",
+            faculty="W04N",
         )
 
         # Create rooms
@@ -110,6 +121,7 @@ class Command(BaseCommand):
             room_number=101,
             building=building.name,
             faculty=faculty.name,
+            available=False,
         )
         room_with_items = RoomWithItems.objects.create(
             room_number=102,
@@ -121,6 +133,13 @@ class Command(BaseCommand):
             username="123456",
             password=make_password("student123"),
             email="student1@example.com",
+            additional_field="Student data",
+        )
+
+        student2 = Student.objects.create(
+            username="111222",
+            password=make_password("student123"),
+            email="student2@example.com",
             additional_field="Student data",
         )
 

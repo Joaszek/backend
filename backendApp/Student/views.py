@@ -91,7 +91,8 @@ def get_available_items(request, id):
             item_list = []
 
             for item in items:
-                is_booked = ItemBooking.objects.filter(item_id=item.item_id, student_id=student_id).exists()
+                is_booked = ItemBooking.objects.filter(item_id=item.item_id, student_id=student_id,
+                                                       returned=False).exists()
                 if not is_booked:
                     logger.debug(f"Item {item.item_id} is available")
                     item_list.append({
@@ -130,7 +131,7 @@ def rent_item(request):
 
         # Validate that the item exists and has a positive amount
         try:
-            item = Item.objects.get(id=item_id)
+            item = Item.objects.get(item_id=item_id)
         except Item.DoesNotExist:
             return JsonResponse({"error": "Item not found"}, status=404)
 
@@ -138,7 +139,7 @@ def rent_item(request):
             return JsonResponse({"error": "Item is not available for rent"}, status=400)
 
         # Check if the student has already rented the same item
-        existing_rentals = ItemBooking.objects.filter(item_id=item_id, user_id=student_id)
+        existing_rentals = ItemBooking.objects.filter(item_id=item_id, student_id=student_id, returned=False)
         if existing_rentals.exists():
             return JsonResponse({"error": "Item already rented by the student"}, status=400)
 
@@ -149,14 +150,15 @@ def rent_item(request):
         # Create a new ItemBooking
         ItemBooking.objects.create(
             item_id=item_id,
-            user_id=student_id,
+            student_id=student_id,
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            returned=False
         )
 
         return JsonResponse({
             "message": f"Student {student_id} rented item {item_id} successfully"
-        }, status=201)
+        }, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -169,7 +171,7 @@ def rent_room(request):
         try:
             data = json.loads(request.body)
             student_id = data.get('student_id')
-            room_id = data.get('room_id')
+            room_number = data.get('room_number')
             start_date = data.get('start_date')
             end_date = data.get('end_date')
         except json.JSONDecodeError:
@@ -177,28 +179,35 @@ def rent_room(request):
 
         # Validate that the room exists
         try:
-            room = RoomToRent.objects.get(id=room_id)
+            room = RoomToRent.objects.get(room_number=room_number)
         except RoomToRent.DoesNotExist:
             return JsonResponse({"error": "Room not found"}, status=404)
 
         # Check if the room is already rented
-        if Booking.objects.filter(room_to_rent=room).exists():
+        if Booking.objects.filter(room_number=room_number, returned=False).exists():
             return JsonResponse({"error": "Room is already rented"}, status=400)
 
         # Check if the student has already rented a room
-        if Booking.objects.filter(user_id=student_id).exists():
+        if Booking.objects.filter(user=student_id, returned=False).exists():
             return JsonResponse({"error": "Student has already rented a room"}, status=400)
 
         # Create a new Booking
         Booking.objects.create(
-            room_to_rent=room,
-            user_id=student_id,
+            room_number=room_number,
+            user=student_id,
             start_time=start_date,
-            end_time=end_date
+            end_time=end_date,
+            building=room.building,
+            faculty=room.faculty,
+            isRoomToRent=True,
+            returned=False
         )
 
+        room.available = False
+        room.save()
+
         return JsonResponse({
-            "message": f"Student {student_id} rented room {room_id} successfully"
+            "message": f"Student {student_id} rented room {room_number} successfully"
         }, status=201)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
@@ -209,19 +218,22 @@ def get_reserved_items(request, username):
     Fetch reserved items for a specific student by username.
     """
     if request.method == "GET":
-        items = ItemBooking.objects.filter(user__username=username).select_related('item')
-        item_list = [
-            {
-                "id": item.id,
-                "name": item.item_id,
-                "student_id": item.student_id,
-                "start_date": item.start_date,
-                "end_date": item.end_date,
-                "attribute": item.returned,
-            }
-            for item in items
-        ]
-        return JsonResponse({"items": item_list}, status=200)
+        try:
+            items = ItemBooking.objects.filter(student_id=username, returned=False)
+            item_list = [
+                {
+                    "id": item.id,
+                    "name": item.item_id,
+                    "student_id": item.student_id,
+                    "start_date": item.start_date,
+                    "end_date": item.end_date,
+                    "returned": item.returned,
+                }
+                for item in items
+            ]
+            return JsonResponse({"items": item_list}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -231,18 +243,20 @@ def get_reserved_rooms(request, username):
     Fetch reserved rooms for a specific student by username.
     """
     if request.method == "GET":
-        # rooms = Booking.objects.filter(user=username && returned=False)
-        # room_list = [
-        #     {
-        #         "id": room.id,
-        #         "room_number": room.room_number,
-        #         "building": room.building,
-        #         "faculty": room.faculty,
-        #         "start_date": room.start_time,
-        #         "end_date": room.end_time
-        #     }
-        #     for room in rooms
-        # ]
-        # return JsonResponse({"rooms": room_list}, status=200)
-        return JsonResponse({"rooms": []}, status=200)
+        try:
+            rooms = Booking.objects.filter(user=username, returned=False)
+            room_list = [
+                {
+                    "id": room.booking_id,
+                    "room_number": room.room_number,
+                    "building": room.building,
+                    "faculty": room.faculty,
+                    "start_date": room.start_time,
+                    "end_date": room.end_time
+                }
+                for room in rooms
+            ]
+            return JsonResponse({"rooms": room_list}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)

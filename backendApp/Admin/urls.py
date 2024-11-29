@@ -34,4 +34,5 @@ urlpatterns = [
     path('attributes', views.getAttributes, name='attribute-list'),
     path('attributes/create', views.createAttribute, name='attribute-create'),  # POST create new attribute
     path('attributes/delete', views.deleteAttribute, name='attribute-delete'),  # DELETE attribute by ID
+    path('returned_item_bookings', views.get_returned_item_bookings, name='get_returned_item_bookings'),
 ]
