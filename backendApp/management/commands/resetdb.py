@@ -187,6 +187,7 @@ class Command(BaseCommand):
         for item in created_items:
             ItemBooking.objects.create(
                 item_id=item.item_id,
+                name=item.name,
                 student_id=student.username,
                 start_date=now().date(),
                 end_date=now().date() + timedelta(days=5),

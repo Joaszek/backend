@@ -221,7 +221,7 @@ def add_faculty(request):
         try:
             data = json.loads(request.body)
             faculty_name = data.get('faculty_name')
-            admin_id = '123456' # Default value
+            admin_id = '123456'  # Default value
             if not faculty_name:
                 return JsonResponse({"error": "Invalid data. 'faculty_name' is required."}, status=400)
             if not admin_id:
@@ -365,25 +365,54 @@ def add_room(request):
 )
 def remove_room(request):
     """
-    Remove a room by ID.
+    Remove a room by ID, ensuring it is not associated with unreturned bookings.
     """
     if request.method == "DELETE":
         try:
             data = json.loads(request.body)
-            room_id = data.get('room_id')
+            room_number = data.get('room_number')
+            building = data.get('building')
+            faculty = data.get('faculty')
             is_room_for_rent = bool(data.get('is_room_for_rent'))
 
-            if not room_id:
-                return JsonResponse({"error": "Invalid data. 'room_id' is required."}, status=400)
+            if not room_number or not building or not faculty:
+                return JsonResponse(
+                    {"error": "Invalid data. 'room_number', 'building', and 'faculty' are required."},
+                    status=400
+                )
 
             if is_room_for_rent:
-                RoomToRent.objects.filter(id=room_id).delete()
+                room = RoomToRent.objects.filter(
+                    room_number=room_number,
+                    building=building,
+                    faculty=faculty
+                ).first()
             else:
-                RoomWithItems.objects.filter(id=room_id).delete()
+                room = RoomWithItems.objects.filter(
+                    room_number=room_number,
+                    building=building,
+                    faculty=faculty
+                ).first()
 
-            return JsonResponse({"message": f"Room {room_id} removed successfully"}, status=200)
+            if not room:
+                return JsonResponse({"error": "Room not found"}, status=404)
+
+            if Booking.objects.filter(room_number=room_number, building=building, faculty=faculty, returned=False).exists():
+                return JsonResponse(
+                    {"error": "Couldn't remove room because it has unreturned items/bookings"},
+                    status=400
+                )
+
+            room.delete()
+
+            return JsonResponse(
+                {"message": f"Room '{room_number}' in building '{building}' of faculty '{faculty}' removed successfully"},
+                status=200
+            )
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -419,11 +448,11 @@ def remove_building(request, building_id):
             # Delete the building itself
             building.delete()
 
-            return JsonResponse({"message": f"Building {building_id} and its associated rooms removed successfully"}, status=200)
+            return JsonResponse({"message": f"Building {building_id} and its associated rooms removed successfully"},
+                                status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
-
 
 
 @csrf_exempt
@@ -460,7 +489,9 @@ def delete_faculty(request, faculty_id):
 
             faculty.delete()
 
-            return JsonResponse({"message": f"Faculty {faculty_id} and its associated buildings and rooms removed successfully"}, status=200)
+            return JsonResponse(
+                {"message": f"Faculty {faculty_id} and its associated buildings and rooms removed successfully"},
+                status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -540,17 +571,33 @@ def add_item(request):
 )
 def delete_item(request, item_id):
     """
-    Delete an item by name.
+    Delete an item by ID, checking if it is associated with unreturned bookings.
     """
     if request.method == "DELETE":
         try:
+            unreturned_bookings = ItemBooking.objects.filter(item_id=item_id, returned=False).exists()
+
+            if unreturned_bookings:
+                return JsonResponse(
+                    {"error": "Couldn't delete item because it has unreturned bookings"},
+                    status=400
+                )
+
             item_deleted, _ = Item.objects.filter(item_id=item_id).delete()
+
             if item_deleted:
-                return JsonResponse({"message": f"Item '{item_id}' deleted successfully"}, status=200)
+                return JsonResponse(
+                    {"message": f"Item '{item_id}' deleted successfully"},
+                    status=200
+                )
             else:
-                return JsonResponse({"error": f"Item with name '{item_id}' not found"}, status=404)
+                return JsonResponse(
+                    {"error": f"Item with ID '{item_id}' not found"},
+                    status=404
+                )
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -581,18 +628,20 @@ def return_room(request):
             data = json.loads(request.body)
             reserved_by = data.get('reserved_by')
             room_number = data.get('room_number')
+            faculty = data.get('faculty')
+            building = data.get('building')
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
         # Validate that the room exists
         try:
-            room = RoomToRent.objects.get(room_number=room_number)
+            room = RoomToRent.objects.get(room_number=room_number, building=building, faculty=faculty)
         except RoomToRent.DoesNotExist:
             return JsonResponse({"error": "Room not found"}, status=404)
 
         # Check if the student has rented the room
         try:
-            booking = Booking.objects.get(room_number=room_number, user=reserved_by)
+            booking = Booking.objects.get(room_number=room_number, building=building, faculty=faculty, user=reserved_by, returned=False)
         except Booking.DoesNotExist:
             return JsonResponse({"error": "Booking not found"}, status=404)
 
@@ -1054,6 +1103,7 @@ def get_reserved_items(request):
             item_list = [{
                 'id': item_booking.id,
                 'item_id': item_booking.item_id,
+                'name': item_booking.name,
                 'student_id': item_booking.student_id,
                 'start_date': item_booking.start_date,
                 'end_date': item_booking.end_date
@@ -1138,7 +1188,6 @@ def getTypes(request):
 
 @csrf_exempt
 def createType(request):
-
     if request.method == "POST":
         try:
             data = json.loads(request.body)
@@ -1156,7 +1205,6 @@ def createType(request):
 
 @csrf_exempt
 def deleteType(request):
-
     if request.method == "DELETE":
         try:
             data = json.loads(request.body)
@@ -1196,14 +1244,14 @@ def createAttribute(request):
 
             Attribute = apps.get_model('Attribute', 'Attribute')  # Update to match your app name
             new_attribute = Attribute.objects.create(attribute_name=attribute_name)
-            return JsonResponse({'message': 'Attribute created successfully', 'attribute_id': new_attribute.id}, status=200)
+            return JsonResponse({'message': 'Attribute created successfully', 'attribute_id': new_attribute.id},
+                                status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
 
 @csrf_exempt
 def deleteAttribute(request):
-
     if request.method == "DELETE":
         try:
             data = json.loads(request.body)
@@ -1218,6 +1266,7 @@ def deleteAttribute(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
+
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_returned_item_bookings(request):
@@ -1230,6 +1279,7 @@ def get_returned_item_bookings(request):
             {
                 "id": booking.id,
                 "item_id": booking.item_id,
+                "name": booking.name,
                 "student_id": booking.student_id,
                 "start_date": booking.start_date,
                 "end_date": booking.end_date,

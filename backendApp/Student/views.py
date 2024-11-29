@@ -150,6 +150,7 @@ def rent_item(request):
         # Create a new ItemBooking
         ItemBooking.objects.create(
             item_id=item_id,
+            name=item.name,
             student_id=student_id,
             start_date=start_date,
             end_date=end_date,
@@ -174,17 +175,19 @@ def rent_room(request):
             room_number = data.get('room_number')
             start_date = data.get('start_date')
             end_date = data.get('end_date')
+            building = data.get('building')
+            faculty = data.get('faculty')
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
         # Validate that the room exists
         try:
-            room = RoomToRent.objects.get(room_number=room_number)
+            room = RoomToRent.objects.get(room_number=room_number, building=building, faculty=faculty)
         except RoomToRent.DoesNotExist:
             return JsonResponse({"error": "Room not found"}, status=404)
 
         # Check if the room is already rented
-        if Booking.objects.filter(room_number=room_number, returned=False).exists():
+        if Booking.objects.filter(room_number=room_number, building=building, faculty=faculty, returned=False).exists():
             return JsonResponse({"error": "Room is already rented"}, status=400)
 
         # Check if the student has already rented a room
@@ -223,7 +226,7 @@ def get_reserved_items(request, username):
             item_list = [
                 {
                     "id": item.id,
-                    "name": item.item_id,
+                    "name": item.name,
                     "student_id": item.student_id,
                     "start_date": item.start_date,
                     "end_date": item.end_date,
