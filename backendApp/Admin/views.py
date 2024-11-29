@@ -504,14 +504,14 @@ def add_item(request):
             item = Item.objects.create(
                 name=name,
                 amount=amount,
-                room_with_items=room_id,
+                room_number=room_id,
                 type=item_type,
                 attribute=attribute,
                 faculty=faculty,
                 building=building
             )
 
-            return JsonResponse({'message': 'Item created successfully', 'item_id': item.item_id}, status=201)
+            return JsonResponse({'message': 'Item created successfully', 'item_id': item.item_id}, status=200)
 
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON.'}, status=400)
@@ -650,6 +650,7 @@ def return_item(request):
         itemBooking.end_time = datetime.now()
         itemBooking.returned = True
         itemBooking.save()
+        itemBooking.delete()
 
         return JsonResponse({"message": f"Item {item_id} returned by student {reserved_by} successfully"}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
