@@ -1,6 +1,8 @@
 import logging
 
 from django.contrib.auth import authenticate, login
+from django.db.models import IntegerField
+from django.db.models.functions import Cast
 from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from backendApp.Booking.models import Booking
@@ -9,7 +11,6 @@ from backendApp.ItemBooking.models import ItemBooking
 from backendApp.RoomToRent.models import RoomToRent
 from django.http import JsonResponse
 import json
-
 
 logger = logging.getLogger(__name__)
 
@@ -46,53 +47,69 @@ def student_login(request):
 @csrf_exempt
 def get_available_rooms(request, username):
     """
-    Fetch available rooms for students. If the student has reservations, return an empty list.
+    Fetch all RoomToRent objects from the database.
+    If the student has reservations, return an empty list.
     """
     if request.method == "GET":
-        # Check if the student has any room reservations
-        student_reservations = Booking.objects.filter(user__username=username)
-        if student_reservations.exists():
-            return JsonResponse({"rooms": []}, status=200)
+        try:
+            emptyRooms = RoomToRent.objects.filter(available=True)
+            if len(emptyRooms) == 0:
+                return JsonResponse({"rooms": []}, status=200)
 
-        # Fetch available rooms if the student has no reservations
-        reserved_rooms = Booking.objects.values_list('room_to_rent_id', flat=True)
-        rooms = RoomToRent.objects.exclude(id__in=reserved_rooms)
-        room_list = [
-            {
-                "id": room.id,
-                "room_number": room.room_number,
-                "building": room.building.name,
-                "faculty": room.building.faculty.name
-            }
-            for room in rooms
-        ]
-        return JsonResponse({"rooms": room_list}, status=200)
+            # Fetch all RoomToRent objects
+            room_list = [
+                {
+                    "id": room.id,
+                    "room_number": room.room_number,
+                    "building": room.building,
+                    "faculty": room.faculty,
+                    "is_to_rent": room.is_to_rent,
+                    "available": room.available,
+                }
+                for room in emptyRooms
+            ]
+            return JsonResponse({"rooms": room_list}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 @csrf_exempt
-def get_available_items(request):
+def get_available_items(request, id):
     """
     Fetch available items for students.
     """
     if request.method == "GET":
-        # Fetch items with positive amounts, excluding those already rented
-        items = Item.objects.filter(amount__gt=0).exclude(id__in=ItemBooking.objects.values('item_id'))
-        item_list = [
-            {
-                "id": item.id,
-                "name": item.name,
-                "amount": item.amount,
-                "room_id": item.room_with_items.id,
-                "type": item.type,  # Use type field directly
-                "attribute": item.attribute,  # Use attribute field directly
-                "room_number": item.room_with_items.room_number,
-                "building": item.room_with_items.building.name,
-                "faculty": item.room_with_items.building.faculty.name
-            }
-            for item in items
-        ]
-        return JsonResponse({"items": item_list}, status=200)
+        try:
+            student_id = id
+            if not student_id:
+                return JsonResponse({"error": "student_id is required"}, status=400)
+
+            items = Item.objects.filter(amount__gt=0)
+            logger.debug(f"Items: {items}")
+            item_list = []
+
+            for item in items:
+                is_booked = ItemBooking.objects.filter(item_id=item.item_id, student_id=student_id).exists()
+                if not is_booked:
+                    logger.debug(f"Item {item.item_id} is available")
+                    item_list.append({
+                        "id": item.item_id,
+                        "name": item.name,
+                        "amount": item.amount,
+                        "room_number": item.room_number,
+                        "type": item.type,
+                        "attribute": item.attribute,
+                        "building": item.building,
+                        "faculty": item.faculty
+                    })
+
+            return JsonResponse({"items": item_list}, status=200)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -195,17 +212,12 @@ def get_reserved_items(request, username):
         items = ItemBooking.objects.filter(user__username=username).select_related('item')
         item_list = [
             {
-                "id": item.item.id,
-                "name": item.item.name,
-                "amount": item.item.amount,
-                "room_id": item.item.room_with_items.id,
-                "type": item.item.type,  # Use type field directly
-                "attribute": item.item.attribute,  # Use attribute field directly
-                "room_number": item.item.room_with_items.room_number,
-                "building": item.item.room_with_items.building.name,
-                "faculty": item.item.room_with_items.building.faculty.name,
+                "id": item.id,
+                "name": item.item_id,
+                "student_id": item.student_id,
                 "start_date": item.start_date,
-                "end_date": item.end_date
+                "end_date": item.end_date,
+                "attribute": item.returned,
             }
             for item in items
         ]
@@ -219,17 +231,18 @@ def get_reserved_rooms(request, username):
     Fetch reserved rooms for a specific student by username.
     """
     if request.method == "GET":
-        rooms = Booking.objects.filter(user__username=username).select_related('room_to_rent')
-        room_list = [
-            {
-                "id": room.room_to_rent.id,
-                "room_number": room.room_to_rent.room_number,
-                "building": room.room_to_rent.building.name,
-                "faculty": room.room_to_rent.building.faculty.name,
-                "start_date": room.start_time,
-                "end_date": room.end_time
-            }
-            for room in rooms
-        ]
-        return JsonResponse({"rooms": room_list}, status=200)
+        # rooms = Booking.objects.filter(user=username && returned=False)
+        # room_list = [
+        #     {
+        #         "id": room.id,
+        #         "room_number": room.room_number,
+        #         "building": room.building,
+        #         "faculty": room.faculty,
+        #         "start_date": room.start_time,
+        #         "end_date": room.end_time
+        #     }
+        #     for room in rooms
+        # ]
+        # return JsonResponse({"rooms": room_list}, status=200)
+        return JsonResponse({"rooms": []}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)

@@ -6,7 +6,7 @@ urlpatterns = [
     path('get_all_students', views.get_all_students, name='get_all_students'),
     path('get_all_faculty', views.get_all_faculty, name='get_all_faculty'),
     path('login', views.login, name='login'),
-    path('add_faculity', views.add_faculty, name='add_faculty'),
+    path('add_faculty', views.add_faculty, name='add_faculty'),
     path('add_building', views.add_building, name='add_building'),
     path('add_room', views.add_room, name='add_room'),
     path('add_student', views.add_student, name='add_student'),
@@ -27,11 +27,11 @@ urlpatterns = [
     path('get_reserved_rooms', views.get_reserved_rooms, name='get_reserved_rooms'),
     path('get_reserved_items', views.get_reserved_items, name='get_reserved_items'),
     path('types', views.getTypes, name='get_types'),  # GET all types and POST create new type
-    path('types/create/', views.createType, name='type-create'),  # POST create new type
-    path('types/delete/', views.deleteType, name='type-delete'),  # DELETE type by ID
+    path('types/create', views.createType, name='type-create'),  # POST create new type
+    path('types/delete', views.deleteType, name='type-delete'),  # DELETE type by ID
     path('bookings', views.get_all_bookings, name='get-all-bookings'),
     # Attribute URLs
     path('attributes', views.getAttributes, name='attribute-list'),
-    path('attributes/create/', views.createAttribute, name='attribute-create'),  # POST create new attribute
-    path('attributes/delete/', views.deleteAttribute, name='attribute-delete'),  # DELETE attribute by ID
+    path('attributes/create', views.createAttribute, name='attribute-create'),  # POST create new attribute
+    path('attributes/delete', views.deleteAttribute, name='attribute-delete'),  # DELETE attribute by ID
 ]

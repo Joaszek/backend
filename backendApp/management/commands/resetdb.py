@@ -126,7 +126,7 @@ class Command(BaseCommand):
 
         # Create booking
         Booking.objects.create(
-            room_id=room_to_rent.id,
+            room_number=room_to_rent.room_number,
             user=student.username,
             start_time=now().date(),
             end_time=now().date() + timedelta(days=7),
@@ -156,7 +156,7 @@ class Command(BaseCommand):
             item = Item.objects.create(
                 name=item_data["name"],
                 amount=item_data["amount"],
-                room_with_items=room_with_items.id,
+                room_number=room_with_items.room_number,
                 type=item_data["type"],
                 attribute=item_data["attribute"],
                 faculty=faculty.name,

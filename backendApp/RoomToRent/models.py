@@ -7,6 +7,8 @@ class RoomToRent(models.Model):
     is_to_rent = models.BooleanField(default=True, editable=False, blank=True)
     building = models.CharField(max_length=100, unique=False, default='Unknown')
     faculty = models.CharField(max_length=100, unique=False, default='Unknown')
+    available = models.BooleanField(default=True, unique=False)
+    
     class Meta:
         unique_together = ('room_number', 'building')  # Ograniczenie unikalności
 

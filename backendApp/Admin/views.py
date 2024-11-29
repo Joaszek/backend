@@ -23,15 +23,17 @@ from backendApp.RoomToRent.models import RoomToRent
 from backendApp.Type.models import Type
 
 
-@ensure_csrf_cookie
+@csrf_exempt
 @extend_schema(
     summary="Get all admins except the provided username",
     description="Fetch all admin users from the database except the one with the given username.",
     parameters=[
-        {"name": "username", "in": "path", "required": True, "description": "Admin username to exclude", "schema": {"type": "string"}}
+        {"name": "username", "in": "path", "required": True, "description": "Admin username to exclude",
+         "schema": {"type": "string"}}
     ],
     responses={
-        200: {"type": "object", "properties": {"admins": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "login": {"type": "string"}, "super_admin": {"type": "boolean"}}}}}},
+        200: {"type": "object", "properties": {"admins": {"type": "array", "items": {"type": "object", "properties": {
+            "id": {"type": "integer"}, "login": {"type": "string"}, "super_admin": {"type": "boolean"}}}}}},
         405: {"type": "object", "properties": {"error": {"type": "string"}}}
     },
 )
@@ -46,12 +48,13 @@ def get_all_admins(request, username):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-@ensure_csrf_cookie
+@csrf_exempt
 @extend_schema(
     summary="Get all students",
     description="Fetch all students from the database.",
     responses={
-        200: {"type": "object", "properties": {"students": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "login": {"type": "string"}}}}}},
+        200: {"type": "object", "properties": {"students": {"type": "array", "items": {"type": "object", "properties": {
+            "id": {"type": "integer"}, "login": {"type": "string"}}}}}},
         405: {"type": "object", "properties": {"error": {"type": "string"}}}
     },
 )
@@ -71,7 +74,11 @@ def get_all_students(request):
     summary="Get all faculties",
     description="Fetch all faculties from the database.",
     responses={
-        200: {"type": "object", "properties": {"faculties": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "name": {"type": "string"}}}}}},
+        200: {"type": "object", "properties": {"faculties": {"type": "array", "items": {"type": "object",
+                                                                                        "properties": {
+                                                                                            "id": {"type": "integer"},
+                                                                                            "name": {
+                                                                                                "type": "string"}}}}}},
         405: {"type": "object", "properties": {"error": {"type": "string"}}}
     },
 )
@@ -81,9 +88,11 @@ def get_all_faculty(request):
     """
     if request.method == "GET":
         faculties = Faculty.objects.all()
-        faculty_list = [{"id": faculty.faculty_id, "name": faculty.name, "admin": faculty.admin_id} for faculty in faculties]
+        faculty_list = [{"id": faculty.faculty_id, "name": faculty.name, "admin": faculty.admin_id} for faculty in
+                        faculties]
         return JsonResponse({"faculties": faculty_list}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 @csrf_exempt
 @extend_schema(
@@ -111,7 +120,6 @@ def add_admin(request):
             data = json.loads(request.body)
             username = data.get('username')
             password = data.get('password')
-            email = data.get('email')
             is_superuser = bool(data.get('is_superuser', False))  # Defaults to False if not provided
             additional_field = data.get('additional_field', '')
             first_name = data.get('first_name', 'Adam')  # Default value
@@ -120,7 +128,7 @@ def add_admin(request):
             is_active = bool(data.get('is_active', True))  # Defaults to True
 
             # Validate required fields
-            if not username or not password or not email:
+            if not username or not password:
                 return JsonResponse(
                     {"error": "Invalid data. 'username', 'password', and 'email' are required."},
                     status=400
@@ -130,7 +138,6 @@ def add_admin(request):
             new_admin = Admin.objects.create(
                 username=username,
                 password=password,  # Hash the password
-                email=email,
                 is_superuser=is_superuser,
                 additional_field=additional_field,
                 first_name=first_name,
@@ -180,7 +187,8 @@ def add_student(request):
             if not student_name or not password:
                 return JsonResponse({"error": "Invalid data. 'student_name' and 'password' are required."}, status=400)
 
-            new_student = Student.objects.create(username=student_name, password=password, additional_field=additional_field)
+            new_student = Student.objects.create(username=student_name, password=password,
+                                                 additional_field=additional_field)
             return JsonResponse({"message": f"Student '{new_student.username}' added successfully"}, status=200)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
@@ -212,18 +220,16 @@ def add_faculty(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            faculty_id =  data.get("faculty_id")
             faculty_name = data.get('faculty_name')
-            admin_id = data.get('admin_id')
-            
+            admin_id = '123456' # Default value
             if not faculty_name:
                 return JsonResponse({"error": "Invalid data. 'faculty_name' is required."}, status=400)
             if not admin_id:
                 return JsonResponse({"error": "Invalid data. 'admin_id' is required."}, status=400)
 
             # Create and save new Faculty instance
-            new_faculty = Faculty.objects.create(faculty_id = faculty_id, name=faculty_name, admin_id=admin_id)
-            return JsonResponse({"message": f"Faculty '{new_faculty.name}' added successfully"}, status=201)
+            new_faculty = Faculty.objects.create(name=faculty_name, admin_id=admin_id)
+            return JsonResponse({"message": f"Faculty '{new_faculty.name}' added successfully"}, status=200)
 
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
@@ -260,7 +266,7 @@ def add_building(request):
             data = json.loads(request.body)
             building_name = data.get('building_name')
             faculty_name = data.get('faculty_name')  # Matches the 'faculty' field in the Building model
-            
+
             # Validate input
             if not building_name:
                 return JsonResponse({"error": "Invalid data. 'building_name' is required."}, status=400)
@@ -268,7 +274,7 @@ def add_building(request):
                 return JsonResponse({"error": "Invalid data. 'faculty_name' is required."}, status=400)
 
             # Create and save new Building instance
-            new_building = Building.objects.create( name=building_name, faculty=faculty_name)
+            new_building = Building.objects.create(name=building_name, faculty=faculty_name)
             return JsonResponse({"message": f"Building '{new_building.name}' added successfully"}, status=201)
 
         except json.JSONDecodeError:
@@ -383,7 +389,8 @@ def remove_room(request):
     summary="Remove a building by ID",
     description="Delete a building from the database using its unique ID.",
     parameters=[
-        {"name": "building_id", "in": "path", "required": True, "description": "ID of the building to delete", "schema": {"type": "integer"}}
+        {"name": "building_id", "in": "path", "required": True, "description": "ID of the building to delete",
+         "schema": {"type": "integer"}}
     ],
     responses={
         200: {"type": "object", "properties": {"message": {"type": "string"}}},
@@ -393,15 +400,27 @@ def remove_room(request):
 )
 def remove_building(request, building_id):
     """
-    Remove a building by ID.
+    Remove a building by ID and delete associated rooms in RoomToRent and RoomWithItems tables.
     """
     if request.method == "DELETE":
         try:
-            Building.objects.filter(id=building_id).delete()
-            return JsonResponse({"message": f"Building {building_id} removed successfully"}, status=200)
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            # Check if the building exists
+            building = Building.objects.filter(id=building_id).first()
+            if not building:
+                return JsonResponse({"error": f"Building with ID {building_id} not found"}, status=404)
+
+            # Delete rooms in RoomToRent and RoomWithItems associated with the building
+            RoomToRent.objects.filter(building=building.name).delete()
+            RoomWithItems.objects.filter(building=building.name).delete()
+
+            # Delete the building itself
+            building.delete()
+
+            return JsonResponse({"message": f"Building {building_id} and its associated rooms removed successfully"}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 
 @csrf_exempt
@@ -409,7 +428,8 @@ def remove_building(request, building_id):
     summary="Delete a faculty by ID",
     description="Remove a faculty from the database using its unique ID.",
     parameters=[
-        {"name": "faculty_id", "in": "path", "required": True, "description": "ID of the faculty to delete", "schema": {"type": "integer"}}
+        {"name": "faculty_id", "in": "path", "required": True, "description": "ID of the faculty to delete",
+         "schema": {"type": "integer"}}
     ],
     responses={
         200: {"type": "object", "properties": {"message": {"type": "string"}}},
@@ -419,17 +439,27 @@ def remove_building(request, building_id):
 )
 def delete_faculty(request, faculty_id):
     """
-    Delete a faculty by ID.
+    Delete a faculty by ID, along with its associated buildings and rooms.
     """
     if request.method == "DELETE":
         try:
-            faculty_deleted, _ = Faculty.objects.filter(id=faculty_id).delete()
-            if faculty_deleted:
-                return JsonResponse({"message": f"Faculty {faculty_id} deleted successfully"}, status=200)
-            else:
-                return JsonResponse({"error": "Faculty not found"}, status=404)
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+            faculty = Faculty.objects.filter(faculty_id=faculty_id).first()
+            if not faculty:
+                return JsonResponse({"error": f"Faculty with ID {faculty_id} not found"}, status=404)
+
+            buildings = Building.objects.filter(faculty=faculty.name)
+
+            for building in buildings:
+                RoomToRent.objects.filter(building=building.name).delete()
+                RoomWithItems.objects.filter(building=building.name).delete()
+
+            buildings.delete()
+
+            faculty.delete()
+
+            return JsonResponse({"message": f"Faculty {faculty_id} and its associated buildings and rooms removed successfully"}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -464,31 +494,21 @@ def add_item(request):
             name = data.get('name')
             amount = data.get('amount')
             room_id = data.get('room_with_items')
-            item_type = data.get('type')  
-            attribute = data.get('attribute')  
-            user = data.get('user')
-            start_date = data.get('start_date')
-            end_date = data.get('end_date')
+            item_type = data.get('type')
+            attribute = data.get('attribute')
             faculty = data.get('faculty')
             building = data.get('building')
 
-            # Validate required fields
-            if not all([name, amount, room_id, item_type, attribute, user, start_date, end_date, faculty, building]):
-                return JsonResponse({'error': 'Missing required fields.'}, status=400)
-            
             # Create the item
             Item = apps.get_model('Item', 'Item')
             item = Item.objects.create(
                 name=name,
                 amount=amount,
-                room_with_items=room_id,  
+                room_with_items=room_id,
                 type=item_type,
                 attribute=attribute,
-                user=user,
-                start_date = start_date,
-                end_date = end_date,
-                faculty = faculty,
-                building = building
+                faculty=faculty,
+                building=building
             )
 
             return JsonResponse({'message': 'Item created successfully', 'item_id': item.item_id}, status=201)
@@ -506,7 +526,8 @@ def add_item(request):
     summary="Delete an item by ID",
     description="Remove an item from the database using its unique ID.",
     parameters=[
-        {"name": "item_id", "in": "path", "required": True, "description": "ID of the item to delete", "schema": {"type": "integer"}}
+        {"name": "item_id", "in": "path", "required": True, "description": "ID of the item to delete",
+         "schema": {"type": "integer"}}
     ],
     responses={
         200: {"type": "object", "properties": {"message": {"type": "string"}}},
@@ -516,17 +537,17 @@ def add_item(request):
 )
 def delete_item(request, item_id):
     """
-    Delete an item by ID.
+    Delete an item by name.
     """
     if request.method == "DELETE":
         try:
-            item_deleted, _ = Item.objects.filter(id=item_id).delete()
+            item_deleted, _ = Item.objects.filter(item_id=item_id).delete()
             if item_deleted:
-                return JsonResponse({"message": f"Item {item_id} deleted successfully"}, status=200)
+                return JsonResponse({"message": f"Item '{item_id}' deleted successfully"}, status=200)
             else:
-                return JsonResponse({"error": "Item not found"}, status=404)
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+                return JsonResponse({"error": f"Item with name '{item_id}' not found"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -556,26 +577,28 @@ def return_room(request):
         try:
             data = json.loads(request.body)
             reserved_by = data.get('reserved_by')
-            room_id = data.get('room_id')
+            room_number = data.get('room_number')
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
         # Validate that the room exists
         try:
-            room = RoomToRent.objects.get(id=room_id)
+            room = RoomToRent.objects.get(room_number=room_number)
         except RoomToRent.DoesNotExist:
             return JsonResponse({"error": "Room not found"}, status=404)
 
         # Check if the student has rented the room
         try:
-            booking = Booking.objects.get(room_to_rent_id=room_id, user__username=reserved_by)
+            booking = Booking.objects.get(room_number=room_number, user=reserved_by)
         except Booking.DoesNotExist:
             return JsonResponse({"error": "Booking not found"}, status=404)
 
         booking.end_time = datetime.now()
+        booking.returned = True
         booking.save()
 
-        return JsonResponse({"message": f"Room {room_id} marked as returned by student {reserved_by} successfully"}, status=200)
+        return JsonResponse({"message": f"Room {room_number} marked as returned by student {reserved_by} successfully"},
+                            status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -605,23 +628,17 @@ def return_item(request):
         try:
             data = json.loads(request.body)
             reserved_by = data.get('reserved_by')
-            item_id = data.get('item_id')
-            print("reserved by", reserved_by)
-            print("Item id: ", item_id)
+            item_id = data.get('id')
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-        # Validate that the item exists
         try:
-            print(3)
-            item = Item.objects.get(name=item_id)
+            item = Item.objects.get(item_id=item_id)
         except Item.DoesNotExist:
             return JsonResponse({"error": "Item not found"}, status=404)
 
-        # Check if the student has rented the item
         try:
-            print(4)
-            booking = ItemBooking.objects.get(item_id=item_id, user__username=reserved_by)
+            itemBooking = ItemBooking.objects.get(item_id=item_id, student_id=reserved_by)
         except ItemBooking.DoesNotExist:
             return JsonResponse({"error": "Booking not found"}, status=404)
 
@@ -630,9 +647,9 @@ def return_item(request):
         item.save()
 
         # Delete the booking
-        booking.end_time = datetime.now()
-        booking.returned = True
-        booking.save()
+        itemBooking.end_time = datetime.now()
+        itemBooking.returned = True
+        itemBooking.save()
 
         return JsonResponse({"message": f"Item {item_id} returned by student {reserved_by} successfully"}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -643,7 +660,8 @@ def return_item(request):
     summary="Get buildings by faculty",
     description="Fetch all buildings associated with a given faculty name.",
     parameters=[
-        {"name": "faculty_name", "in": "path", "required": True, "description": "Name of the faculty", "schema": {"type": "string"}}
+        {"name": "faculty_name", "in": "path", "required": True, "description": "Name of the faculty",
+         "schema": {"type": "string"}}
     ],
     responses={
         200: {
@@ -661,7 +679,7 @@ def return_item(request):
 )
 def get_buildings_by_faculty(request, faculty_name):
     """
-    Get buildings by faculty name by searching through the Building database.
+    Get buildings by faculty name along with RoomToRent and RoomWithItems data.
     """
     if request.method == "GET":
         try:
@@ -669,10 +687,45 @@ def get_buildings_by_faculty(request, faculty_name):
             buildings = Building.objects.filter(faculty__icontains=faculty_name)
 
             if not buildings.exists():
-                return JsonResponse({"error": "No buildings found for the given faculty"}, status=404)
+                return JsonResponse({"buildings": []}, status=200)
 
-            # Serialize the building data
-            buildings_data = [{"id": building.id, "name": building.name} for building in buildings]
+            # Collect data for each building
+            buildings_data = []
+            for building in buildings:
+                # Fetch RoomToRent and RoomWithItems for the building
+                room_to_rent = RoomToRent.objects.filter(building=building.name)
+                room_with_items = RoomWithItems.objects.filter(building=building.name)
+
+                # Serialize room data
+                room_to_rent_data = [
+                    {
+                        "id": room.id,
+                        "room_number": room.room_number,
+                        "is_to_rent": room.is_to_rent,
+                        "building": room.building,
+                        "faculty": room.faculty,
+                    }
+                    for room in room_to_rent
+                ]
+
+                room_with_items_data = [
+                    {
+                        "id": room.id,
+                        "room_number": room.room_number,
+                        "is_to_rent": room.is_to_rent,
+                        "building": room.building,
+                        "faculty": room.faculty,
+                    }
+                    for room in room_with_items
+                ]
+
+                # Append building data with room details
+                buildings_data.append({
+                    "id": building.id,
+                    "name": building.name,
+                    "RoomToRent": room_to_rent_data,
+                    "RoomWithItems": room_with_items_data,
+                })
 
             return JsonResponse({"buildings": buildings_data}, status=200)
         except Exception as e:
@@ -686,7 +739,8 @@ def get_buildings_by_faculty(request, faculty_name):
     summary="Get rooms by building",
     description="Fetch all rooms (both rentable and with items) associated with a given building name.",
     parameters=[
-        {"name": "building_name", "in": "path", "required": True, "description": "Name of the building", "schema": {"type": "string"}}
+        {"name": "building_name", "in": "path", "required": True, "description": "Name of the building",
+         "schema": {"type": "string"}}
     ],
     responses={
         200: {
@@ -729,12 +783,14 @@ def get_rooms_by_building(request, building_name):
         return JsonResponse({"rooms": rooms_data}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
 @csrf_exempt
 @extend_schema(
     summary="Delete a student by ID",
     description="Remove a student from the database using their unique ID.",
     parameters=[
-        {"name": "student_id", "in": "path", "required": True, "description": "ID of the student to delete", "schema": {"type": "integer"}}
+        {"name": "student_id", "in": "path", "required": True, "description": "ID of the student to delete",
+         "schema": {"type": "integer"}}
     ],
     responses={
         200: {"type": "object", "properties": {"message": {"type": "string"}}},
@@ -757,12 +813,14 @@ def delete_student(request, student_id):
             return JsonResponse({"error": "Invalid JSON"}, status=400)
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
 @csrf_exempt
 @extend_schema(
     summary="Delete an admin by ID",
     description="Remove an admin from the database using their unique ID.",
     parameters=[
-        {"name": "admin_id", "in": "path", "required": True, "description": "ID of the admin to delete", "schema": {"type": "integer"}}
+        {"name": "admin_id", "in": "path", "required": True, "description": "ID of the admin to delete",
+         "schema": {"type": "integer"}}
     ],
     responses={
         200: {"type": "object", "properties": {"message": {"type": "string"}}},
@@ -784,6 +842,7 @@ def delete_admin(request, admin_id):
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 @csrf_exempt
 @extend_schema(
@@ -824,17 +883,15 @@ def get_all_items(request):
         try:
             Item = apps.get_model('Item', 'Item')
             items = Item.objects.all()
-            print("Items in the database: ",items)
+            print("Items in the database: ", items)
             item_list = [{
                 'id': item.item_id,
                 'name': item.name,
                 'amount': item.amount,
-                'room_with_items': item.room_with_items,
                 'type': item.type,
+                'room_number': item.room_number,
                 'attribute': item.attribute,
                 'user': item.user,
-                'start_date': item.start_date,
-                'end_date': item.end_date,
                 'building': item.building,
                 'faculty': item.faculty
             } for item in items]
@@ -842,6 +899,7 @@ def get_all_items(request):
             return JsonResponse({'items': item_list}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 @extend_schema(
@@ -890,6 +948,7 @@ def login(request):
 
     return JsonResponse({"error": "Invalid method"}, status=405)
 
+
 @csrf_exempt
 @extend_schema(
     summary="Fetch all reserved rooms",
@@ -926,14 +985,14 @@ def get_reserved_rooms(request):
         # Get the username from the query parameters
 
         # Filter bookings based on the user and is_to_rent=True
-        rooms = Booking.objects.filter(isRoomToRent=True)
+        rooms = Booking.objects.filter(isRoomToRent=True, returned=False)
         if not rooms.exists():
-            return JsonResponse({"message": "No reserved rooms found for the given user"}, status=404)
+            return JsonResponse({"rooms": []}, status=200)
 
         room_list = [
             {
                 "id": room.booking_id,
-                "room_id": room.room_id,
+                "room_number": room.room_number,
                 "building": room.building,
                 "faculty": room.faculty,
                 "start_date": room.start_time,
@@ -946,6 +1005,7 @@ def get_reserved_rooms(request):
         return JsonResponse({"rooms": room_list}, status=200)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 @csrf_exempt
 @extend_schema(
@@ -982,7 +1042,7 @@ def get_reserved_items(request):
     if request.method == "GET":
         try:
             ItemBooking = apps.get_model('ItemBooking', 'ItemBooking')
-            reserved_items = ItemBooking.objects.all() 
+            reserved_items = ItemBooking.objects.filter(returned=False)
 
             item_list = [{
                 'id': item_booking.id,
@@ -1033,13 +1093,16 @@ def get_all_bookings(request):
     Fetch all bookings.
     """
     if request.method == "GET":
-        bookings = Booking.objects.all()
+        bookings = Booking.objects.filter(returned=True)
+
+        if len(bookings) == 0:
+            return JsonResponse({"bookings": []}, status=200)
+
         booking_list = [
             {
                 "id": booking.booking_id,
                 "item_id": booking.item_id,
-                "item_name": booking.item_name,
-                "room_id": booking.room_id,
+                "room_number": booking.room_number,
                 "user": booking.user,
                 "building": booking.building,
                 "faculty": booking.faculty,
@@ -1049,8 +1112,10 @@ def get_all_bookings(request):
             }
             for booking in bookings
         ]
+
         return JsonResponse({"bookings": booking_list}, status=200)
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 @csrf_exempt
 def getTypes(request):
@@ -1065,33 +1130,38 @@ def getTypes(request):
 
 
 @csrf_exempt
-@require_http_methods(["DELETE"])
-def createType(self, request, *args, **kwargs):
-    try:
-        data = request.data
-        type_name = data.get('type_name')
+def createType(request):
 
-        if not type_name:
-            return JsonResponse({'error': 'Type name is required.'}, status=400)
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            type_name = data.get('type_name')
 
-        Type = apps.get_model('backendApp', 'Type')  # Update to match your app name
-        new_type = Type.objects.create(type_name=type_name)
-        return JsonResponse({'message': 'Type created successfully', 'type_id': new_type.id}, status=200)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+            if not type_name:
+                return JsonResponse({'error': 'Type name is required.'}, status=400)
+
+            Type = apps.get_model('Type', 'Type')
+            type = Type.objects.create(type_name=type_name)
+            return JsonResponse({'message': 'Type created successfully'}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
-@require_http_methods(["DELETE"])
-def deleteType(self, request, *args, **kwargs):
-    try:
-        Type = apps.get_model('Type', 'Type')  # Update to match your app name
-        type_obj = Type.objects.get(id=id)
-        type_obj.delete()
-        return JsonResponse({'message': 'Type deleted successfully'}, status=200)
-    except Type.DoesNotExist:
-        return JsonResponse({'error': 'Type not found.'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+def deleteType(request):
+
+    if request.method == "DELETE":
+        try:
+            data = json.loads(request.body)
+            type_id = data.get('id')
+            Type = apps.get_model('Type', 'Type')  # Update to match your app name
+            type_obj = Type.objects.get(id=type_id)
+            type_obj.delete()
+            return JsonResponse({'message': 'Type deleted successfully'}, status=200)
+        except Type.DoesNotExist:
+            return JsonResponse({'error': 'Type not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 
 @csrf_exempt
@@ -1108,56 +1178,35 @@ def getAttributes(request):
 
 
 @csrf_exempt
-@require_http_methods(["POST"])
-def createAttribute(self, request, *args, **kwargs):
-    try:
-        data = request.data
-        attribute_name = data.get('attribute_name')
+def createAttribute(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            attribute_name = data.get('attribute_name')
 
-        if not attribute_name:
-            return JsonResponse({'error': 'Attribute name is required.'}, status=400)
+            if not attribute_name:
+                return JsonResponse({'error': 'Attribute name is required.'}, status=400)
 
-        Attribute = apps.get_model('backendApp', 'Attribute')  # Update to match your app name
-        new_attribute = Attribute.objects.create(attribute_name=attribute_name)
-        return JsonResponse({'message': 'Attribute created successfully', 'attribute_id': new_attribute.id}, status=200)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+            Attribute = apps.get_model('Attribute', 'Attribute')  # Update to match your app name
+            new_attribute = Attribute.objects.create(attribute_name=attribute_name)
+            return JsonResponse({'message': 'Attribute created successfully', 'attribute_id': new_attribute.id}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
-@require_http_methods(["DELETE"])
-def deleteAttribute(self, request, *args, **kwargs):
-    try:
-        Attribute = apps.get_model('backendApp', 'Attribute')  # Update to match your app name
-        attribute = Attribute.objects.get(id=id)
-        attribute.delete()
-        return JsonResponse({'message': 'Attribute deleted successfully'}, status=200)
-    except Attribute.DoesNotExist:
-        return JsonResponse({'error': 'Attribute not found.'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+def deleteAttribute(request):
 
-def getType(self, request, *args, **kwargs):
-    if 'id' in kwargs:
-    # Fetch a specific type by ID
+    if request.method == "DELETE":
         try:
-            type_obj = Type.objects.get(id=kwargs['id'])
-            return JsonResponse({'id': type_obj.id, 'type_name': type_obj.type_name})
-        except ObjectDoesNotExist:
-            return JsonResponse({"error": "Type not found"}, status=404)
-    else:
-        # Fetch all types
-        types = Type.objects.all().values('id', 'type_name')
-        return JsonResponse(list(types), safe=False)
+            data = json.loads(request.body)
+            attribute_id = data.get('id')
 
-def getAttribute(self, request, *args, **kwargs):
-    if 'id' in kwargs:
-    # Fetch a specific attribute by ID
-        try:
-            attribute_obj = Attribute.objects.get(id=kwargs['id'])
-            return JsonResponse({'id': attribute_obj.id, 'attribute_name': attribute_obj.attribute_name})
-        except ObjectDoesNotExist:
-            return JsonResponse({"error": "Attribute not found"}, status=404)
-    else:
-        # Fetch all attributes
-        attributes = Attribute.objects.all().values('id', 'attribute_name')
-        return JsonResponse(list(attributes), safe=False)
+            Attribute = apps.get_model('Attribute', 'Attribute')  # Update to match your app name
+            attribute = Attribute.objects.get(id=attribute_id)
+            attribute.delete()
+            return JsonResponse({'message': 'Attribute deleted successfully'}, status=200)
+        except Attribute.DoesNotExist:
+            return JsonResponse({'error': 'Attribute not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
