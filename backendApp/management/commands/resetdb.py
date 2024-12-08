@@ -96,7 +96,7 @@ class Command(BaseCommand):
         )
 
         admin2 = Admin.objects.create(
-            username="123457",
+            username="234567",
             password=make_password("admin123"),
             email="admin2@example.com",
             additional_field="Admin data",
@@ -106,26 +106,204 @@ class Command(BaseCommand):
             is_staff=False,
         )
 
+        admin3 = Admin.objects.create(
+            username="345678",
+            password=make_password("admin123"),
+            email="admin3@example.com",
+            additional_field="Admin data",
+            is_superuser=True,
+            first_name="Adam",
+            last_name="Nowak",
+            is_staff=False,
+        )
+        admin4 = Admin.objects.create(
+            username="456789",
+            password=make_password("admin123"),
+            email="admin4@example.com",
+            additional_field="Admin data",
+            is_superuser=True,
+            first_name="Kuba",
+            last_name="Kowalski",
+            is_staff=False,
+        )
+
         # Create initial faculty and building
         faculty = Faculty.objects.create(
             name="W04N",
             admin_id=admin.id,
         )
-        building = Building.objects.create(
+
+        faculty2 = Faculty.objects.create(
+            name="W8",
+            admin_id=admin2.id,
+        )
+
+        faculty3 = Faculty.objects.create(
+            name="W1",
+            admin_id=admin3.id,
+        )
+
+        facult4 = Faculty.objects.create(
+            name="W12",
+            admin_id=admin.id,
+        )
+
+
+        building11 = Building.objects.create(
             name="B1",
             faculty="W04N",
         )
+        building12 = Building.objects.create(
+            name="B2",
+            faculty="W04N",
+        )
+
+        building21 = Building.objects.create(
+            name="A1",
+            faculty="W04N",
+        )
+        building22 = Building.objects.create(
+            name="A2",
+            faculty="W04N",
+        )
+
+        building31 = Building.objects.create(
+            name="D1",
+            faculty="W8",
+        )
+        building32 = Building.objects.create(
+            name="D2",
+            faculty="W12",
+        )
 
         # Create rooms
-        room_to_rent = RoomToRent.objects.create(
-            room_number=101,
-            building=building.name,
+        room_to_rent1 = RoomToRent.objects.create(
+            room_number=102,
+            building=building11.name,
+            faculty=faculty.name,
+            available=True,
+        )
+
+        room_to_rent2 = RoomToRent.objects.create(
+            room_number=103,
+            building=building12.name,
             faculty=faculty.name,
             available=False,
         )
-        room_with_items = RoomWithItems.objects.create(
-            room_number=102,
-            building=building.name,
+
+        room_to_rent3 = RoomToRent.objects.create(
+            room_number=104,
+            building=building21.name,
+            faculty=faculty.name,
+            available=True,
+        )
+
+        room_to_rent4 = RoomToRent.objects.create(
+            room_number=105,
+            building=building21.name,
+            faculty=faculty.name,
+            available=True,
+        )
+
+        room_to_rent5 = RoomToRent.objects.create(
+            room_number=106,
+            building=building22.name,
+            faculty=faculty.name,
+            available=False,
+        )
+
+        room_to_rent6 = RoomToRent.objects.create(
+            room_number=107,
+            building=building31.name,
+            faculty=faculty2.name,
+            available=True,
+        )
+
+        room_to_rent7 = RoomToRent.objects.create(
+            room_number=108,
+            building=building32.name,
+            faculty=faculty3.name,
+            available=True,
+        )
+
+        room_to_rent8 = RoomToRent.objects.create(
+            room_number=109,
+            building=building31.name,
+            faculty=faculty2.name,
+            available=False,
+        )
+
+        room_to_rent9 = RoomToRent.objects.create(
+            room_number=110,
+            building=building32.name,
+            faculty=faculty3.name,
+            available=True,
+        )
+
+        room_to_rent10 = RoomToRent.objects.create(
+            room_number=111,
+            building=building12.name,
+            faculty=faculty.name,
+            available=False,
+        )
+        room_with_items1 = RoomWithItems.objects.create(
+            room_number=103,
+            faculty=faculty.name,
+            building=building11.name,
+        )
+
+        room_with_items2 = RoomWithItems.objects.create(
+            room_number=104,
+            faculty=faculty.name,
+            building=building12.name,
+        )
+
+        room_with_items3 = RoomWithItems.objects.create(
+            room_number=105,
+            faculty=faculty.name,
+            building=building21.name,
+        )
+
+        room_with_items4 = RoomWithItems.objects.create(
+            room_number=106,
+            faculty=faculty.name,
+            building=building21.name,
+        )
+
+        room_with_items5 = RoomWithItems.objects.create(
+            room_number=107,
+            faculty=faculty.name,
+            building=building22.name,
+        )
+
+        room_with_items6 = RoomWithItems.objects.create(
+            room_number=108,
+            faculty=faculty2.name,
+            building=building31.name,
+        )
+
+        room_with_items7 = RoomWithItems.objects.create(
+            room_number=109,
+            faculty=faculty3.name,
+            building=building32.name,
+        )
+
+        room_with_items8 = RoomWithItems.objects.create(
+            room_number=110,
+            faculty=faculty2.name,
+            building=building31.name,
+        )
+
+        room_with_items9 = RoomWithItems.objects.create(
+            room_number=111,
+            faculty=faculty3.name,
+            building=building32.name,
+        )
+
+        room_with_items10 = RoomWithItems.objects.create(
+            room_number=112,
+            faculty=faculty.name,
+            building=building12.name,
         )
 
         # Create student
@@ -137,25 +315,85 @@ class Command(BaseCommand):
         )
 
         student2 = Student.objects.create(
-            username="111222",
+            username="234567",
             password=make_password("student123"),
             email="student2@example.com",
             additional_field="Student data",
         )
+        # Create student
+        student3 = Student.objects.create(
+            username="345678",
+            password=make_password("student123"),
+            email="student3@example.com",
+            additional_field="Student data",
+        )
 
-        # Create booking
-        Booking.objects.create(
-            room_number=room_to_rent.room_number,
+        student4 = Student.objects.create(
+            username="456789",
+            password=make_password("student123"),
+            email="student4@example.com",
+            additional_field="Student data",
+        )
+
+        # Booking 1
+        booking = Booking.objects.create(
+            room_number=room_to_rent1.room_number,
             user=student.username,
             start_time=now().date(),
             end_time=now().date() + timedelta(days=7),
-            building=building.name,
+            building=building11.name,
             faculty=faculty.name,
         )
 
+        # Booking 2
+        booking2 = Booking.objects.create(
+            room_number=room_to_rent2.room_number,
+            user=student2.username,
+            start_time=now().date(),
+            end_time=now().date() + timedelta(days=7),
+            building=building12.name,
+            faculty=faculty.name,
+        )
+
+        # Booking 3
+        booking3 = Booking.objects.create(
+            room_number=room_to_rent3.room_number,
+            user=student3.username,
+            start_time=now().date(),
+            end_time=now().date() + timedelta(days=7),
+            building=building21.name,
+            faculty=faculty.name,
+        )
+
+        # Booking 4
+        booking4 = Booking.objects.create(
+            room_number=room_to_rent6.room_number,
+            user=student4.username,
+            start_time=now().date(),
+            end_time=now().date() + timedelta(days=7),
+            building=building31.name,
+            faculty=faculty2.name,
+        )
+
+        # Booking 5
+        booking5 = Booking.objects.create(
+            room_number=room_to_rent9.room_number,
+            user=student.username,  # Same student to ensure only one booking per student
+            start_time=now().date(),
+            end_time=now().date() + timedelta(days=7),
+            returned = True,
+            building=building32.name,
+            faculty=faculty3.name,
+        )
+
+
         # Predefined types and attributes
-        types = ["Laptop", "Charger", "Mouse"]
-        attributes = ["Portable", "Charging", "Wireless"]
+        # Types
+        types = ["Laptop", "Charger", "Mouse", "Keyboard", "Monitor", "Headphones", "Tablet", "Webcam", "Power Bank", "Hard Drive"]
+
+        # Attributes
+        attributes = ["Portable", "Charging", "Wireless", "Ergonomic", "Adjustable", "Noise Cancelling", "Touchscreen", "Compact", "Waterproof", "High-Speed"]
+
 
         for type_name in types:
             Type.objects.create(type_name=type_name)
@@ -165,32 +403,42 @@ class Command(BaseCommand):
 
         # Create items
         items = [
-            {"name": "Laptop 1", "amount": 5, "type": "Laptop", "attribute": "Portable"},
-            {"name": "Charger 1", "amount": 10, "type": "Charger", "attribute": "Charging"},
-            {"name": "Mouse 1", "amount": 8, "type": "Mouse", "attribute": "Wireless"},
+            {"name": "Laptop 2", "amount": 5, "type": "Laptop", "attribute": "Portable", "room_number": "101", "building": building11.name, "faculty": faculty.name},
+            {"name": "Charger 2", "amount": 10, "type": "Charger", "attribute": "Charging", "room_number": "102", "building": building12.name, "faculty": faculty.name},
+            {"name": "Mouse 2", "amount": 8, "type": "Mouse", "attribute": "Wireless", "room_number": "103", "building": building21.name, "faculty": faculty.name},
+            {"name": "Keyboard 1", "amount": 6, "type": "Keyboard", "attribute": "Ergonomic", "room_number": "104", "building": building21.name, "faculty": faculty.name},
+            {"name": "Monitor 1", "amount": 4, "type": "Monitor", "attribute": "Adjustable", "room_number": "105", "building": building22.name, "faculty": faculty.name},
+            {"name": "Headphones 1", "amount": 7, "type": "Headphones", "attribute": "Noise Cancelling", "room_number": "106", "building": building31.name, "faculty": faculty2.name},
+            {"name": "Tablet 1", "amount": 5, "type": "Tablet", "attribute": "Touchscreen", "room_number": "107", "building": building31.name, "faculty": faculty2.name},
+            {"name": "Webcam 1", "amount": 6, "type": "Webcam", "attribute": "Compact", "room_number": "108", "building": building32.name, "faculty": faculty3.name},
+            {"name": "Power Bank 1", "amount": 9, "type": "Power Bank", "attribute": "Portable", "room_number": "109", "building": building32.name, "faculty": faculty3.name},
+            {"name": "Hard Drive 1", "amount": 3, "type": "Hard Drive", "attribute": "High-Speed", "room_number": "110", "building": building12.name, "faculty": faculty.name},
         ]
 
-        created_items = []
+        # Create items in the database
         for item_data in items:
-            item = Item.objects.create(
+            Item.objects.create(
                 name=item_data["name"],
                 amount=item_data["amount"],
-                room_number=room_with_items.room_number,
                 type=item_data["type"],
                 attribute=item_data["attribute"],
-                faculty=faculty.name,
-                building=building.name,
+                room_number=item_data["room_number"],
+                building=item_data["building"],
+                faculty=item_data["faculty"],
             )
-            created_items.append(item)
+
+        students = [student, student2, student3, student4]
 
         # Create item bookings
-        for item in created_items:
-            ItemBooking.objects.create(
-                item_id=item.item_id,
-                name=item.name,
-                student_id=student.username,
-                start_date=now().date(),
-                end_date=now().date() + timedelta(days=5),
-            )
+        for student in students:
+            for item_data in items:
+                if not ItemBooking.objects.filter(student_id=student.username, name=item_data["name"]).exists():
+                    ItemBooking.objects.create(
+                        item_id=item_data["name"],  # Using item name as the item_id here (adjust according to actual item_id field)
+                        name=item_data["name"],
+                        student_id=student.username,
+                        start_date=now().date(),
+                        end_date=now().date() + timedelta(days=5),
+                    )
 
         self.stdout.write("Initial data population complete.")

@@ -683,25 +683,26 @@ def return_item(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
+            db_id = data.get('id')
             reserved_by = data.get('reserved_by')
-            item_id = data.get('id')
+            item_id = data.get('item_id')
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
         try:
-            item = Item.objects.get(item_id=item_id)
+            item = Item.objects.get(item_id=db_id)
         except Item.DoesNotExist:
             return JsonResponse({"error": "Item not found"}, status=404)
+        
+        print(item)
 
         itemBookings = ItemBooking.objects.filter(item_id=item_id, student_id=reserved_by, returned=False)
         if not itemBookings.exists():
             return JsonResponse({"error": "Booking not found or already returned"}, status=404)
 
-        # Increase the item amount
         item.amount += 1
         item.save()
 
-        # Update the bookings to mark them as returned
         for itemBooking in itemBookings:
             itemBooking.end_date = datetime.now().strftime('%Y-%m-%d')
             itemBooking.returned = True
