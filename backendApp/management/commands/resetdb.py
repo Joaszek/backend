@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils.timezone import now
 from datetime import timedelta
-
+import random
 
 class Command(BaseCommand):
     help = "Fully resets the database and populates initial data"
@@ -431,14 +431,22 @@ class Command(BaseCommand):
 
         # Create item bookings
         for student in students:
-            for item_data in items:
-                if not ItemBooking.objects.filter(student_id=student.username, name=item_data["name"]).exists():
+            # Fetch all items from the database
+            items = Item.objects.all()  # Query all items from the database
+            # Randomly select 2-3 items for each student
+            selected_items = random.sample(list(items), 3)  # Convert queryset to list to sample
+            
+            for item in selected_items:
+                # Check if the student already has a booking for the item
+                if not ItemBooking.objects.filter(student_id=student.username, item_id=item.item_id).exists():
+                    # Create item booking with item_id
                     ItemBooking.objects.create(
-                        item_id=item_data["name"],  # Using item name as the item_id here (adjust according to actual item_id field)
-                        name=item_data["name"],
+                        item_id=item.item_id,  # Use item.id for the foreign key
+                        name=item.name,    # Using name as before
                         student_id=student.username,
                         start_date=now().date(),
                         end_date=now().date() + timedelta(days=5),
                     )
+
 
         self.stdout.write("Initial data population complete.")
